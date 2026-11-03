@@ -730,6 +730,19 @@ st.markdown("""
         border: 1px solid rgba(59, 130, 246, 0.5) !important;
     }
 
+    /* Submenu button styling in sidebar */
+    section[data-testid="stSidebar"] div[data-testid="stButton"]:has(button[key^="sidebar_sub_"]) button {
+        padding-left: 18px !important;
+        font-size: 0.81rem !important;
+        height: 32px !important;
+        min-height: 32px !important;
+        margin-bottom: 2px !important;
+        border-left: 2px solid rgba(59, 130, 246, 0.3) !important;
+        border-radius: 0 6px 6px 0 !important;
+        margin-left: 8px !important;
+        width: calc(100% - 8px) !important;
+    }
+
     /* =========================================================================
        GLOBAL NEON PROGRESS LOADER & SPINNER STYLING
        ========================================================================= */
@@ -1016,21 +1029,56 @@ with st.sidebar:
 
     # Main Navigation: Real Menu Items (NO CHECKBOXES / NO RADIO CIRCLES)
     st.markdown('<div class="preline-nav-header">MAIN MENU</div>', unsafe_allow_html=True)
-    menu_items = [
-        ("Restore Operations", "🚀"),
-        ("Restore History", "📜"),
-        ("Configuration", "⚙️")
-    ]
-    for page_name, icon in menu_items:
-        is_active = (st.session_state.get("current_page", "Restore Operations") == page_name)
-        if st.button(
-            f"{icon}  {page_name}",
-            key=f"sidebar_nav_{page_name}",
-            type="primary" if is_active else "secondary",
-            use_container_width=True
-        ):
-            st.session_state["current_page"] = page_name
+
+    # 1. Restore Operations
+    op_active = (st.session_state.get("current_page", "Restore Operations") == "Restore Operations")
+    if st.button("🚀  Restore Operations", key="sidebar_nav_ops", type="primary" if op_active else "secondary", use_container_width=True):
+        st.session_state["current_page"] = "Restore Operations"
+        st.rerun()
+
+    # 2. Restore History
+    hist_active = (st.session_state.get("current_page") == "Restore History")
+    if st.button("📜  Restore History", key="sidebar_nav_hist", type="primary" if hist_active else "secondary", use_container_width=True):
+        st.session_state["current_page"] = "Restore History"
+        st.rerun()
+
+    # 3. Configuration Menu with Dropdown / Submenu
+    cfg_active = ("Configuration" in st.session_state.get("current_page", ""))
+    if "cfg_expanded" not in st.session_state:
+        st.session_state["cfg_expanded"] = True
+
+    c_cfg_btn, c_cfg_toggle = st.columns([4.2, 1.2])
+    with c_cfg_btn:
+        if st.button("⚙️  Configuration", key="sidebar_nav_cfg_main", type="primary" if cfg_active else "secondary", use_container_width=True):
+            st.session_state["current_page"] = "Configuration"
             st.rerun()
+    with c_cfg_toggle:
+        arr_icon = "▼" if st.session_state["cfg_expanded"] else "▶"
+        if st.button(arr_icon, key="sidebar_nav_cfg_toggle", help="Toggle Configuration categories", use_container_width=True):
+            st.session_state["cfg_expanded"] = not st.session_state["cfg_expanded"]
+            st.rerun()
+
+    # Dropdown sub-categories under Configuration
+    if st.session_state.get("cfg_expanded", True):
+        cfg_subitems = [
+            ("🌐 Remote SSH", "Remote SSH"),
+            ("🗄️ Database Engines", "Databases"),
+            ("🏢 Active Directory", "Active Directory"),
+            ("📁 Server Storage", "Storage"),
+            ("📋 Full Overview", "Overview")
+        ]
+        curr_cat = st.session_state.get("config_category", "Remote SSH")
+        for sub_label, sub_id in cfg_subitems:
+            is_sub_selected = (cfg_active and curr_cat == sub_id)
+            if st.button(
+                f"↳ {sub_label}",
+                key=f"sidebar_sub_{sub_id}",
+                type="primary" if is_sub_selected else "secondary",
+                use_container_width=True
+            ):
+                st.session_state["current_page"] = "Configuration"
+                st.session_state["config_category"] = sub_id
+                st.rerun()
 
     # Spacer
     st.markdown("<div style='flex:1; min-height:24px;'></div>", unsafe_allow_html=True)
@@ -1076,9 +1124,10 @@ elif "Restore History" in nav_choice:
     page_icon = "📜"
     page_desc = "Audit trail of executed restorations, console logs, and target details"
 else:
-    page_title = "System Configuration"
+    curr_cat_name = st.session_state.get("config_category", "Remote SSH")
+    page_title = f"Configuration › {curr_cat_name}" if curr_cat_name != "Overview" else "System Configuration"
     page_icon = "⚙️"
-    page_desc = "SSH connectivity parameters, database engine credentials, and AD settings"
+    page_desc = "Categorized management for SSH, Database Engines, Active Directory, and Storage"
 
 # TOP BAR ROW: BREADCRUMBS, CONNECTION MODE, USER DROPDOWN
 with st.container():
@@ -1548,164 +1597,277 @@ elif "Restore History" in nav_choice:
 
 
 # ==============================================================================
-# TAB 3: CONFIGURATION
+# TAB 3: CATEGORIZED CONFIGURATION (SEPARATE FUNCTIONS UNDER DROPDOWN)
 # ==============================================================================
 elif "Configuration" in nav_choice:
-    st.caption("⚙️ Changes here are persisted locally to `config.json`.")
+    cat_map = {
+        "Remote SSH": ("🌐 Remote SSH Server", "Remote Linux host connection, SFTP credentials, and backup paths"),
+        "Databases": ("🗄️ Database Engines", "PostgreSQL and MariaDB target connection endpoints and credentials"),
+        "Active Directory": ("🏢 Active Directory Gateway", "Corporate Active Directory single sign-on service settings"),
+        "Storage": ("📁 Server Storage & Backups", "Local system storage directories and backup search paths"),
+        "Overview": ("📋 All Settings (Overview)", "Consolidated management view across all system configurations")
+    }
+    cat_keys = list(cat_map.keys())
+    current_cat = st.session_state.get("config_category", "Remote SSH")
+    if current_cat not in cat_keys:
+        current_cat = "Remote SSH"
 
     ssh_data = config.get("ssh", {})
-    ssh_c1, ssh_c2, ssh_c3 = st.columns([2, 1, 2])
-    with ssh_c1:
-        ssh_host_in = st.text_input("SSH Host / IP", value=ssh_data.get("host", "10.21.0.143"), key="cfg_ssh_host")
-    with ssh_c2:
-        ssh_port_in = st.number_input("SSH Port", min_value=1, max_value=65535, value=int(ssh_data.get("port", 22)), key="cfg_ssh_port")
-    with ssh_c3:
-        ssh_user_in = st.text_input("SSH Username", value=ssh_data.get("user", "user"), key="cfg_ssh_user")
-
-    ssh_auth_c1, ssh_auth_c2 = st.columns(2)
-    with ssh_auth_c1:
-        ssh_auth_type = st.radio("Authentication Method", ["Password", "Private Key File (.pem / .id_rsa)"], index=0 if ssh_data.get("auth_type", "password") == "password" else 1, horizontal=True)
-    with ssh_auth_c2:
-        if ssh_auth_type == "Password":
-            ssh_pass_in = st.text_input("SSH Password", value=ssh_data.get("password", ""), type="password", key="cfg_ssh_pass")
-            ssh_key_in = ""
-        else:
-            ssh_key_in = st.text_input("Private Key Path on PC", value=ssh_data.get("key_path", ""), placeholder=r"e.g. C:\Users\user\.ssh\id_rsa", key="cfg_ssh_key")
-            ssh_pass_in = ""
-
-    ssh_dir_in = st.text_input(
-        "Remote Backup Directory (on Server)",
-        value=ssh_data.get("remote_backup_dir", "/App2/source_backup"),
-        help="Directory on the remote Linux server where dump files are stored"
-    )
-
-    if st.button("🔌 Test SSH Connection", use_container_width=True):
-        test_temp = {
-            "host": ssh_host_in,
-            "port": ssh_port_in,
-            "user": ssh_user_in,
-            "auth_type": "password" if ssh_auth_type == "Password" else "key",
-            "password": ssh_pass_in,
-            "key_path": ssh_key_in
-        }
-        with st.spinner("Connecting to remote SSH server & testing SFTP..."):
-            ok, msg = test_ssh_connection(test_temp)
-        if ok:
-            st.success(msg)
-        else:
-            st.error(msg)
-
-    st.divider()
-
-    cfg_col1, cfg_col2 = st.columns(2, gap="medium")
-    with cfg_col1:
-        st.markdown("**PostgreSQL Settings**")
-        pg_cfg = config.get("postgresql", {})
-        pg_host = st.text_input("Host", value=pg_cfg.get("host", "10.21.0.143"), key="cfg_pg_host")
-        pg_port = st.number_input("Port", min_value=1, max_value=65535, value=int(pg_cfg.get("port", 5432)), key="cfg_pg_port")
-        pg_user = st.text_input("Username", value=pg_cfg.get("user", "app_dev"), key="cfg_pg_user")
-        pg_pass = st.text_input("Password", value=pg_cfg.get("password", ""), type="password", key="cfg_pg_pass")
-        pg_maint = st.text_input("Maintenance DB", value=pg_cfg.get("maintenance_db", "postgres"), key="cfg_pg_maint")
-        if st.button("🔌 Test PostgreSQL Connection", key="cfg_test_pg_btn", use_container_width=True):
-            with st.spinner("Pinging PostgreSQL host..."):
-                t_ok, t_msg = test_postgresql_connection({"host": pg_host, "port": pg_port, "user": pg_user, "password": pg_pass, "maintenance_db": pg_maint})
-            if t_ok:
-                st.success(t_msg)
-            else:
-                st.error(t_msg)
-
-    with cfg_col2:
-        st.markdown("**MariaDB Settings**")
-        maria_cfg = config.get("mariadb", {})
-        maria_host = st.text_input("Host", value=maria_cfg.get("host", "10.21.0.143"), key="cfg_maria_host")
-        maria_port = st.number_input("Port", min_value=1, max_value=65535, value=int(maria_cfg.get("port", 3307)), key="cfg_maria_port")
-        maria_user = st.text_input("Username", value=maria_cfg.get("user", "app_dev"), key="cfg_maria_user")
-        maria_pass = st.text_input("Password", value=maria_cfg.get("password", ""), type="password", key="cfg_maria_pass")
-        if st.button("🔌 Test MariaDB Connection", key="cfg_test_maria_btn", use_container_width=True):
-            with st.spinner("Pinging MariaDB host..."):
-                t_ok, t_msg = test_mariadb_connection({"host": maria_host, "port": maria_port, "user": maria_user, "password": maria_pass})
-            if t_ok:
-                st.success(t_msg)
-            else:
-                st.error(t_msg)
-
-    st.divider()
-
-    st.markdown("**Active Directory (AD) Service Settings**")
+    pg_cfg = config.get("postgresql", {})
+    maria_cfg = config.get("mariadb", {})
     ad_data = config.get("ad", {})
-    ad_c1, ad_c2, ad_c3 = st.columns([2.5, 2.5, 3])
-    with ad_c1:
-        ad_base_url_in = st.text_input("AD Base URL", value=ad_data.get("base_url", "https://ad.mjqeducation.edu.kh/api/v1"), key="cfg_ad_base")
-    with ad_c2:
-        ad_app_name_in = st.text_input("AD App Name", value=ad_data.get("app_name", "https://epurchase.mjqeducation.edu.kh"), key="cfg_ad_app")
-    with ad_c3:
-        ad_api_key_in = st.text_input("AD API Key", value=ad_data.get("api_key", ""), type="password", key="cfg_ad_key")
+    storage_data = config.get("server_storage", {})
 
-    if st.button("🔌 Test AD Service Reachability", use_container_width=True):
-        with st.spinner(f"Testing reachability to Active Directory at {ad_base_url_in}..."):
-            import requests
-            try:
-                r = requests.post(
-                    f"{ad_base_url_in.strip().rstrip('/')}/auth/loginUsername",
-                    headers={
-                        "Content-Type": "application/json",
-                        "X-API-KEY": ad_api_key_in.strip(),
-                        "x-app-name": ad_app_name_in.strip()
-                    },
-                    json={"username": "ping", "password": "ping"},
-                    timeout=6
-                )
-                if r.status_code in [200, 400, 401, 404]:
-                    st.success(f"✅ Active Directory service reachable! (HTTP {r.status_code})")
-                else:
-                    st.warning(f"⚠️ AD Service responded with HTTP {r.status_code}: {r.text}")
-            except Exception as e:
-                st.error(f"❌ Failed to reach AD service: {str(e)}")
-
-    st.divider()
-
-    if st.button("💾 Save All Configurations", type="primary", use_container_width=True):
+    def do_save_all():
         new_config = {
             "connection_mode": "ssh" if is_ssh_mode else "direct",
             "ssh": {
-                "host": ssh_host_in.strip(),
-                "port": int(ssh_port_in),
-                "user": ssh_user_in.strip(),
-                "auth_type": "password" if ssh_auth_type == "Password" else "key",
-                "password": ssh_pass_in,
-                "key_path": ssh_key_in.strip(),
-                "remote_backup_dir": ssh_dir_in.strip()
+                "host": st.session_state.get("cfg_ssh_host", ssh_data.get("host", "10.21.0.143")).strip(),
+                "port": int(st.session_state.get("cfg_ssh_port", ssh_data.get("port", 22))),
+                "user": st.session_state.get("cfg_ssh_user", ssh_data.get("user", "user")).strip(),
+                "auth_type": "password" if st.session_state.get("cfg_ssh_auth_type", "Password") == "Password" else "key",
+                "password": st.session_state.get("cfg_ssh_pass", ssh_data.get("password", "")),
+                "key_path": st.session_state.get("cfg_ssh_key", ssh_data.get("key_path", "")).strip(),
+                "remote_backup_dir": st.session_state.get("cfg_ssh_dir", ssh_data.get("remote_backup_dir", "/App2/source_backup")).strip()
             },
-            "server_storage": config.get("server_storage", {
-                "backup_dir": r"D:\Narak\Sql file",
-                "scan_subdirectories": False
-            }),
+            "server_storage": {
+                "backup_dir": st.session_state.get("cfg_storage_dir", storage_data.get("backup_dir", r"D:\Narak\Sql file")).strip(),
+                "scan_subdirectories": bool(st.session_state.get("cfg_storage_subdirs", storage_data.get("scan_subdirectories", False)))
+            },
             "postgresql": {
-                "host": pg_host.strip(),
-                "port": int(pg_port),
-                "user": pg_user.strip(),
-                "password": pg_pass,
-                "maintenance_db": pg_maint.strip(),
+                "host": st.session_state.get("cfg_pg_host", pg_cfg.get("host", "10.21.0.143")).strip(),
+                "port": int(st.session_state.get("cfg_pg_port", pg_cfg.get("port", 5432))),
+                "user": st.session_state.get("cfg_pg_user", pg_cfg.get("user", "app_dev")).strip(),
+                "password": st.session_state.get("cfg_pg_pass", pg_cfg.get("password", "")),
+                "maintenance_db": st.session_state.get("cfg_pg_maint", pg_cfg.get("maintenance_db", "postgres")).strip(),
                 "cli_path": ""
             },
             "mariadb": {
-                "host": maria_host.strip(),
-                "port": int(maria_port),
-                "user": maria_user.strip(),
-                "password": maria_pass,
+                "host": st.session_state.get("cfg_maria_host", maria_cfg.get("host", "10.21.0.143")).strip(),
+                "port": int(st.session_state.get("cfg_maria_port", maria_cfg.get("port", 3307))),
+                "user": st.session_state.get("cfg_maria_user", maria_cfg.get("user", "app_dev")).strip(),
+                "password": st.session_state.get("cfg_maria_pass", maria_cfg.get("password", "")),
                 "cli_path": ""
             },
             "ad": {
-                "base_url": ad_base_url_in.strip(),
-                "api_key": ad_api_key_in.strip(),
-                "app_name": ad_app_name_in.strip()
+                "base_url": st.session_state.get("cfg_ad_base", ad_data.get("base_url", "https://ad.mjqeducation.edu.kh/api/v1")).strip(),
+                "api_key": st.session_state.get("cfg_ad_key", ad_data.get("api_key", "")).strip(),
+                "app_name": st.session_state.get("cfg_ad_app", ad_data.get("app_name", "https://epurchase.mjqeducation.edu.kh")).strip()
             }
         }
         with st.spinner("Persisting configuration settings..."):
             save_config(new_config)
             time.sleep(0.3)
         st.toast("Configuration saved successfully!", icon="💾")
-        st.success("Configuration saved!")
+        st.success("✅ Configuration settings saved to config.json!")
+
+    # Categorized Dropdown Selector Header
+    c_cat_drop, c_cat_save = st.columns([3.8, 1.4], vertical_alignment="center")
+    with c_cat_drop:
+        selected_cat = st.selectbox(
+            "Configuration Function",
+            cat_keys,
+            format_func=lambda k: cat_map[k][0],
+            index=cat_keys.index(current_cat),
+            key="config_function_dropdown_widget"
+        )
+        st.session_state["config_category"] = selected_cat
+
+    with c_cat_save:
+        if st.button("💾 Save Configuration", key="cfg_top_save_btn", type="primary", use_container_width=True):
+            do_save_all()
+
+    st.markdown(f"<div style='font-size:0.78rem; color:#94a3b8; margin: 2px 0 14px 0;'>{cat_map[selected_cat][1]}</div>", unsafe_allow_html=True)
+
+    # --------------------------------------------------------------------------
+    # CATEGORY 1: REMOTE SSH SERVER
+    # --------------------------------------------------------------------------
+    if selected_cat in ["Remote SSH", "Overview"]:
+        with st.container():
+            st.markdown("#### 🌐 Remote SSH Server Parameters")
+            st.caption("Settings for accessing the remote backup server via SFTP / SSH")
+            ssh_c1, ssh_c2, ssh_c3 = st.columns([2, 1, 2])
+            with ssh_c1:
+                ssh_host_in = st.text_input("SSH Host / IP", value=ssh_data.get("host", "10.21.0.143"), key="cfg_ssh_host")
+            with ssh_c2:
+                ssh_port_in = st.number_input("SSH Port", min_value=1, max_value=65535, value=int(ssh_data.get("port", 22)), key="cfg_ssh_port")
+            with ssh_c3:
+                ssh_user_in = st.text_input("SSH Username", value=ssh_data.get("user", "user"), key="cfg_ssh_user")
+
+            ssh_auth_c1, ssh_auth_c2 = st.columns(2)
+            with ssh_auth_c1:
+                ssh_auth_type = st.radio("Authentication Method", ["Password", "Private Key File (.pem / .id_rsa)"], index=0 if ssh_data.get("auth_type", "password") == "password" else 1, horizontal=True, key="cfg_ssh_auth_type")
+            with ssh_auth_c2:
+                if ssh_auth_type == "Password":
+                    ssh_pass_in = st.text_input("SSH Password", value=ssh_data.get("password", ""), type="password", key="cfg_ssh_pass")
+                    ssh_key_in = ""
+                else:
+                    ssh_key_in = st.text_input("Private Key Path on PC", value=ssh_data.get("key_path", ""), placeholder=r"e.g. C:\Users\user\.ssh\id_rsa", key="cfg_ssh_key")
+                    ssh_pass_in = ""
+
+            ssh_dir_in = st.text_input(
+                "Remote Backup Directory (on Server)",
+                value=ssh_data.get("remote_backup_dir", "/App2/source_backup"),
+                help="Directory on the remote Linux server where dump files are stored",
+                key="cfg_ssh_dir"
+            )
+
+            col_ssh_test, col_ssh_save = st.columns([1, 1])
+            with col_ssh_test:
+                if st.button("🔌 Test SSH Connection", key="cfg_test_ssh_btn", use_container_width=True):
+                    test_temp = {
+                        "host": ssh_host_in,
+                        "port": ssh_port_in,
+                        "user": ssh_user_in,
+                        "auth_type": "password" if ssh_auth_type == "Password" else "key",
+                        "password": ssh_pass_in,
+                        "key_path": ssh_key_in
+                    }
+                    with st.spinner("Connecting to remote SSH server & testing SFTP..."):
+                        ok, msg = test_ssh_connection(test_temp)
+                    if ok:
+                        st.success(msg)
+                    else:
+                        st.error(msg)
+            with col_ssh_save:
+                if selected_cat == "Remote SSH":
+                    if st.button("💾 Save SSH Configuration", key="cfg_save_ssh_only", type="primary", use_container_width=True):
+                        do_save_all()
+
+        st.divider()
+
+    # --------------------------------------------------------------------------
+    # CATEGORY 2: DATABASE ENGINES (POSTGRESQL & MARIADB)
+    # --------------------------------------------------------------------------
+    if selected_cat in ["Databases", "Overview"]:
+        with st.container():
+            st.markdown("#### 🗄️ Database Engines (PostgreSQL & MariaDB)")
+            st.caption("Target database server instances for restoration operations")
+            cfg_col1, cfg_col2 = st.columns(2, gap="medium")
+            with cfg_col1:
+                st.markdown("**🐘 PostgreSQL Target**")
+                pg_host = st.text_input("Host", value=pg_cfg.get("host", "10.21.0.143"), key="cfg_pg_host")
+                pg_port = st.number_input("Port", min_value=1, max_value=65535, value=int(pg_cfg.get("port", 5432)), key="cfg_pg_port")
+                pg_user = st.text_input("Username", value=pg_cfg.get("user", "app_dev"), key="cfg_pg_user")
+                pg_pass = st.text_input("Password", value=pg_cfg.get("password", ""), type="password", key="cfg_pg_pass")
+                pg_maint = st.text_input("Maintenance DB", value=pg_cfg.get("maintenance_db", "postgres"), key="cfg_pg_maint")
+                if st.button("🔌 Test PostgreSQL Connection", key="cfg_test_pg_btn", use_container_width=True):
+                    with st.spinner("Pinging PostgreSQL host..."):
+                        t_ok, t_msg = test_postgresql_connection({"host": pg_host, "port": pg_port, "user": pg_user, "password": pg_pass, "maintenance_db": pg_maint})
+                    if t_ok:
+                        st.success(t_msg)
+                    else:
+                        st.error(t_msg)
+
+            with cfg_col2:
+                st.markdown("**🦭 MariaDB / MySQL Target**")
+                maria_host = st.text_input("Host", value=maria_cfg.get("host", "10.21.0.143"), key="cfg_maria_host")
+                maria_port = st.number_input("Port", min_value=1, max_value=65535, value=int(maria_cfg.get("port", 3307)), key="cfg_maria_port")
+                maria_user = st.text_input("Username", value=maria_cfg.get("user", "app_dev"), key="cfg_maria_user")
+                maria_pass = st.text_input("Password", value=maria_cfg.get("password", ""), type="password", key="cfg_maria_pass")
+                if st.button("🔌 Test MariaDB Connection", key="cfg_test_maria_btn", use_container_width=True):
+                    with st.spinner("Pinging MariaDB host..."):
+                        t_ok, t_msg = test_mariadb_connection({"host": maria_host, "port": maria_port, "user": maria_user, "password": maria_pass})
+                    if t_ok:
+                        st.success(t_msg)
+                    else:
+                        st.error(t_msg)
+
+            if selected_cat == "Databases":
+                st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+                if st.button("💾 Save Database Configuration", key="cfg_save_db_only", type="primary", use_container_width=True):
+                    do_save_all()
+
+        st.divider()
+
+    # --------------------------------------------------------------------------
+    # CATEGORY 3: ACTIVE DIRECTORY GATEWAY
+    # --------------------------------------------------------------------------
+    if selected_cat in ["Active Directory", "Overview"]:
+        with st.container():
+            st.markdown("#### 🏢 Active Directory (AD) Service Settings")
+            st.caption("MJQE Employee Single Sign-On and Active Directory Gateway credentials")
+            ad_c1, ad_c2, ad_c3 = st.columns([2.5, 2.5, 3])
+            with ad_c1:
+                ad_base_url_in = st.text_input("AD Base URL", value=ad_data.get("base_url", "https://ad.mjqeducation.edu.kh/api/v1"), key="cfg_ad_base")
+            with ad_c2:
+                ad_app_name_in = st.text_input("AD App Name", value=ad_data.get("app_name", "https://epurchase.mjqeducation.edu.kh"), key="cfg_ad_app")
+            with ad_c3:
+                ad_api_key_in = st.text_input("AD API Key", value=ad_data.get("api_key", ""), type="password", key="cfg_ad_key")
+
+            col_ad_test, col_ad_save = st.columns([1, 1])
+            with col_ad_test:
+                if st.button("🔌 Test AD Service Reachability", key="cfg_test_ad_btn", use_container_width=True):
+                    with st.spinner(f"Testing reachability to Active Directory at {ad_base_url_in}..."):
+                        import requests
+                        try:
+                            r = requests.post(
+                                f"{ad_base_url_in.strip().rstrip('/')}/auth/loginUsername",
+                                headers={
+                                    "Content-Type": "application/json",
+                                    "X-API-KEY": ad_api_key_in.strip(),
+                                    "x-app-name": ad_app_name_in.strip()
+                                },
+                                json={"username": "ping", "password": "ping"},
+                                timeout=6
+                            )
+                            if r.status_code in [200, 400, 401, 404]:
+                                st.success(f"✅ Active Directory service reachable! (HTTP {r.status_code})")
+                            else:
+                                st.warning(f"⚠️ AD Service responded with HTTP {r.status_code}: {r.text}")
+                        except Exception as e:
+                            st.error(f"❌ Failed to reach AD service: {str(e)}")
+            with col_ad_save:
+                if selected_cat == "Active Directory":
+                    if st.button("💾 Save Active Directory Configuration", key="cfg_save_ad_only", type="primary", use_container_width=True):
+                        do_save_all()
+
+        st.divider()
+
+    # --------------------------------------------------------------------------
+    # CATEGORY 4: SERVER STORAGE & LOCAL BACKUPS
+    # --------------------------------------------------------------------------
+    if selected_cat in ["Storage", "Overview"]:
+        with st.container():
+            st.markdown("#### 📁 Server Storage & Backup Files")
+            st.caption("Local filesystem directory paths for direct socket mode and file scans")
+            c_st1, c_st2 = st.columns([3.5, 1.5])
+            with c_st1:
+                st_backup_dir = st.text_input(
+                    "Local Backup Directory Path",
+                    value=storage_data.get("backup_dir", r"D:\Narak\Sql file"),
+                    key="cfg_storage_dir",
+                    help="Directory on this machine where .sql / .dump files are stored"
+                )
+            with c_st2:
+                st.markdown("<div style='height:28px;'></div>", unsafe_allow_html=True)
+                st_subdirs = st.checkbox(
+                    "Scan Subdirectories",
+                    value=storage_data.get("scan_subdirectories", False),
+                    key="cfg_storage_subdirs"
+                )
+
+            col_st_test, col_st_save = st.columns([1, 1])
+            with col_st_test:
+                if st.button("📂 Verify Local Folder Access", key="cfg_test_storage_btn", use_container_width=True):
+                    with st.spinner("Inspecting storage path..."):
+                        if os.path.exists(st_backup_dir) and os.path.isdir(st_backup_dir):
+                            valid_exts = {".sql", ".dump", ".tar", ".backup", ".gz"}
+                            found_count = 0
+                            try:
+                                for root, _, files in os.walk(st_backup_dir) if st_subdirs else [(st_backup_dir, [], os.listdir(st_backup_dir))]:
+                                    for f in files:
+                                        if any(f.lower().endswith(ext) for ext in valid_exts):
+                                            found_count += 1
+                                st.success(f"✅ Folder accessible! Found {found_count} database backup file(s).")
+                            except Exception as ex:
+                                st.warning(f"Folder exists but scan had warning: {str(ex)}")
+                        else:
+                            st.error(f"❌ Folder not found or inaccessible: {st_backup_dir}")
+            with col_st_save:
+                if selected_cat == "Storage":
+                    if st.button("💾 Save Storage Configuration", key="cfg_save_storage_only", type="primary", use_container_width=True):
+                        do_save_all()
 
 
 # ==============================================================================
