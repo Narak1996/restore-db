@@ -181,23 +181,31 @@ def login(req: LoginRequest):
         "accessToken": access_token
     }
 
-    return {
+    res_payload = {
         "success": True,
         "accessToken": access_token,
         "token": access_token,
         "user": user_info
     }
+    res_payload["data"] = {
+        "accessToken": access_token,
+        "token": access_token,
+        "user": user_info
+    }
+    return res_payload
 
 @app.get("/api/auth/me")
 def get_current_user():
     """Returns authenticated user profile."""
+    u = {
+        "id": "1",
+        "displayName": "System Administrator",
+        "email": "admin@dbrestore.local",
+        "role": "admin"
+    }
     return {
-        "user": {
-            "id": "1",
-            "displayName": "System Administrator",
-            "email": "admin@dbrestore.local",
-            "role": "admin"
-        }
+        "user": u,
+        "data": {"user": u}
     }
 
 # ------------------------------------------------------------------------------
