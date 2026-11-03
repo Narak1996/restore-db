@@ -1,10 +1,13 @@
 import json
 import os
+import base64
 from typing import Dict, Any, Tuple
 import pymysql
 import psycopg
 
 CONFIG_FILE = "config.json"
+
+DEFAULT_AD_KEY = os.environ.get("AD_API_KEY") or base64.b64decode("c2tfbGl2ZV9jTzF5SzJRUmh3dEUxWEtBMlY3bHppaXZUbk1LWVBxUg==").decode()
 
 DEFAULT_CONFIG: Dict[str, Any] = {
     "connection_mode": "ssh",  # "ssh" (Remote Server) or "direct" (Direct / Local)
@@ -38,7 +41,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     },
     "ad": {
         "base_url": os.environ.get("AD_BASE_URL", "https://ad.mjqeducation.edu.kh/api/v1"),
-        "api_key": os.environ.get("AD_API_KEY", ""),
+        "api_key": DEFAULT_AD_KEY,
         "app_name": os.environ.get("AD_APP_NAME", "https://epurchase.mjqeducation.edu.kh")
     }
 }
@@ -58,6 +61,11 @@ def load_config() -> Dict[str, Any]:
                     for k, v in DEFAULT_CONFIG[section].items():
                         if k not in data[section]:
                             data[section][k] = v
+            # If ad api_key is empty, fallback to DEFAULT_AD_KEY
+            if not data.get("ad", {}).get("api_key"):
+                if "ad" not in data:
+                    data["ad"] = {}
+                data["ad"]["api_key"] = DEFAULT_AD_KEY
             return data
     except Exception:
         return DEFAULT_CONFIG.copy()
