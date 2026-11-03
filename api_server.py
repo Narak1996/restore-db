@@ -238,17 +238,27 @@ def update_config(payload: Dict[str, Any]):
     cfg = payload.get("config", payload)
     current_cfg = config_manager.load_config()
     
-    if isinstance(cfg, dict):
-        for k, v in cfg.items():
+    def _deep_merge(tgt: Dict[str, Any], src: Dict[str, Any]):
+        for k, v in src.items():
             if k == "config" and isinstance(v, dict):
-                current_cfg.update(v)
+                _deep_merge(tgt, v)
+            elif isinstance(v, dict) and isinstance(tgt.get(k), dict):
+                for sub_k, sub_v in v.items():
+                    if sub_k in ("password", "api_key", "key_path") and not sub_v and tgt[k].get(sub_k):
+                        continue
+                    tgt[k][sub_k] = sub_v
             else:
-                current_cfg[k] = v
+                if k in ("password", "api_key", "key_path") and not v and tgt.get(k):
+                    continue
+                tgt[k] = v
+
+    if isinstance(cfg, dict):
+        _deep_merge(current_cfg, cfg)
 
     ok = config_manager.save_config(current_cfg)
     if not ok:
         raise HTTPException(status_code=500, detail="Failed to save config.json")
-    return {"success": True, "message": "Configuration saved successfully."}
+    return {"success": True, "message": "Configuration saved successfully.", "config": current_cfg}
 
 @app.post("/api/config/test-ssh")
 def test_ssh(req: TestSSHRequest):

@@ -1,11 +1,31 @@
 import json
 import os
+import sys
 import base64
 from typing import Dict, Any, Tuple
 import pymysql
 import psycopg
 
-CONFIG_FILE = "config.json"
+def get_config_file_path() -> str:
+    if getattr(sys, "frozen", False):
+        exe_dir = os.path.dirname(os.path.abspath(sys.executable))
+        exe_cfg = os.path.join(exe_dir, "config.json")
+        if os.path.exists(exe_cfg):
+            return exe_cfg
+        desktop_cfg = os.path.expanduser("~/Desktop/config.json")
+        if os.path.exists(desktop_cfg):
+            return desktop_cfg
+        return exe_cfg
+    proj_dir = os.path.dirname(os.path.abspath(__file__))
+    proj_cfg = os.path.join(proj_dir, "config.json")
+    if os.path.exists(proj_cfg):
+        return proj_cfg
+    desktop_cfg = os.path.expanduser("~/Desktop/config.json")
+    if os.path.exists(desktop_cfg):
+        return desktop_cfg
+    return proj_cfg
+
+CONFIG_FILE = get_config_file_path()
 
 DEFAULT_AD_KEY = os.environ.get("AD_API_KEY") or base64.b64decode("c2tfbGl2ZV9jTzF5SzJRUmh3dEUxWEtBMlY3bHppaXZUbk1LWVBxUg==").decode()
 
@@ -158,9 +178,19 @@ def list_server_backup_files(backup_dir: str, scan_subdirs: bool = False) -> lis
     return results
 
 def save_config(config: Dict[str, Any]) -> bool:
+    cfg_path = get_config_file_path()
     try:
-        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+        with open(cfg_path, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=4)
+        
+        # Keep desktop config in sync if different
+        desktop_cfg = os.path.expanduser("~/Desktop/config.json")
+        if os.path.exists(desktop_cfg) and os.path.abspath(cfg_path).lower() != os.path.abspath(desktop_cfg).lower():
+            try:
+                with open(desktop_cfg, "w", encoding="utf-8") as f:
+                    json.dump(config, f, indent=4)
+            except Exception:
+                pass
         return True
     except Exception as e:
         print(f"Error saving config: {e}")

@@ -125,8 +125,12 @@ def test_ad_connection(ad_cfg: Optional[Dict[str, Any]] = None) -> Tuple[bool, s
             json={"username": "ping", "password": "ping"},
             timeout=6
         )
-        if r.status_code in [200, 400, 401, 404]:
-            return True, f"Active Directory service reachable! (HTTP {r.status_code})"
+        if r.status_code == 200:
+            return True, "Active Directory service connected and responded successfully (HTTP 200)."
+        if r.status_code in [400, 422]:
+            return True, f"Active Directory service reachable and verified! (HTTP {r.status_code})"
+        if r.status_code in [401, 403]:
+            return False, f"Active Directory authentication failed: Invalid API Key or Unauthorized (HTTP {r.status_code})"
         return False, f"AD Service responded with HTTP {r.status_code}: {r.text[:100]}"
     except Exception as e:
         return False, f"Failed to reach AD service: {str(e)}"

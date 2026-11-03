@@ -1,12 +1,31 @@
 import sqlite3
 import os
+import sys
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
-DB_FILE = "history.db"
+def get_db_file_path() -> str:
+    if getattr(sys, "frozen", False):
+        exe_dir = os.path.dirname(os.path.abspath(sys.executable))
+        exe_db = os.path.join(exe_dir, "history.db")
+        if os.path.exists(exe_db):
+            return exe_db
+        desktop_db = os.path.expanduser("~/Desktop/history.db")
+        if os.path.exists(desktop_db):
+            return desktop_db
+        return exe_db
+    proj_dir = os.path.dirname(os.path.abspath(__file__))
+    proj_db = os.path.join(proj_dir, "history.db")
+    if os.path.exists(proj_db):
+        return proj_db
+    desktop_db = os.path.expanduser("~/Desktop/history.db")
+    if os.path.exists(desktop_db):
+        return desktop_db
+    return proj_db
 
 def get_db_connection():
-    conn = sqlite3.connect(DB_FILE)
+    db_path = get_db_file_path()
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -95,7 +114,28 @@ def add_history(
             exec_user
         ))
         conn.commit()
-        return cursor.lastrowid
+        last_id = cursor.lastrowid
+        
+    # Also sync to desktop DB if different location
+    desktop_db = os.path.expanduser("~/Desktop/history.db")
+    if os.path.exists(desktop_db) and os.path.abspath(get_db_file_path()).lower() != os.path.abspath(desktop_db).lower():
+        try:
+            with sqlite3.connect(desktop_db) as d_conn:
+                d_cursor = d_conn.cursor()
+                d_cursor.execute("""
+                    INSERT INTO restore_history 
+                    (timestamp, db_type, db_name, file_name, file_size_mb, created_db, status, duration_sec, logs, source_path, destination, user_name, server_user, db_user, executed_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    now_str, db_type, db_name, file_name, round(file_size_mb, 2),
+                    1 if created_db else 0, status, round(duration_sec, 2),
+                    logs, s_path, dest, user_name or exec_user, server_user, db_user, exec_user
+                ))
+                d_conn.commit()
+        except Exception:
+            pass
+            
+    return last_id
 
 def get_history(limit: int = 200) -> List[Dict[str, Any]]:
     init_db()
