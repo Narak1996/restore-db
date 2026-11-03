@@ -1119,8 +1119,7 @@ with st.sidebar:
             ("🌐  Remote SSH", "Remote SSH"),
             ("🗄️  Database Engines", "Databases"),
             ("🏢  Active Directory", "Active Directory"),
-            ("📁  Server Storage", "Storage"),
-            ("📋  Full Overview", "Overview")
+            ("📁  Server Storage", "Storage")
         ]
         curr_cat = st.session_state.get("config_category", "Remote SSH")
         for sub_label, sub_id in cfg_subitems:
@@ -1180,7 +1179,7 @@ elif "Restore History" in nav_choice:
     page_desc = "Audit trail of executed restorations, console logs, and target details"
 else:
     curr_cat_name = st.session_state.get("config_category", "Remote SSH")
-    page_title = f"Configuration › {curr_cat_name}" if curr_cat_name != "Overview" else "System Configuration"
+    page_title = f"Configuration › {curr_cat_name}"
     page_icon = "⚙️"
     page_desc = "Categorized management for SSH, Database Engines, Active Directory, and Storage"
 
@@ -1659,8 +1658,7 @@ elif "Configuration" in nav_choice:
         "Remote SSH": ("🌐 Remote SSH Server", "Remote Linux host connection, SFTP credentials, and backup paths"),
         "Databases": ("🗄️ Database Engines", "PostgreSQL and MariaDB target connection endpoints and credentials"),
         "Active Directory": ("🏢 Active Directory Gateway", "Corporate Active Directory single sign-on service settings"),
-        "Storage": ("📁 Server Storage & Backups", "Local system storage directories and backup search paths"),
-        "Overview": ("📋 All Settings (Overview)", "Consolidated management view across all system configurations")
+        "Storage": ("📁 Server Storage & Backups", "Local system storage directories and backup search paths")
     }
     cat_keys = list(cat_map.keys())
     current_cat = st.session_state.get("config_category", "Remote SSH")
@@ -1760,7 +1758,7 @@ elif "Configuration" in nav_choice:
     # --------------------------------------------------------------------------
     # CATEGORY 1: REMOTE SSH SERVER
     # --------------------------------------------------------------------------
-    if selected_cat in ["Remote SSH", "Overview"]:
+    if selected_cat == "Remote SSH":
         with st.container():
             st.markdown("#### 🌐 Remote SSH Server Parameters")
             st.caption("Settings for accessing the remote backup server via SFTP / SSH")
@@ -1817,7 +1815,7 @@ elif "Configuration" in nav_choice:
     # --------------------------------------------------------------------------
     # CATEGORY 2: DATABASE ENGINES (POSTGRESQL & MARIADB)
     # --------------------------------------------------------------------------
-    if selected_cat in ["Databases", "Overview"]:
+    if selected_cat == "Databases":
         with st.container():
             st.markdown("#### 🗄️ Database Engines (PostgreSQL & MariaDB)")
             st.caption("Target database server instances for restoration operations")
@@ -1861,7 +1859,7 @@ elif "Configuration" in nav_choice:
     # --------------------------------------------------------------------------
     # CATEGORY 3: ACTIVE DIRECTORY GATEWAY
     # --------------------------------------------------------------------------
-    if selected_cat in ["Active Directory", "Overview"]:
+    if selected_cat == "Active Directory":
         with st.container():
             st.markdown("#### 🏢 Active Directory (AD) Service Settings")
             st.caption("MJQE Employee Single Sign-On and Active Directory Gateway credentials")
@@ -1905,7 +1903,7 @@ elif "Configuration" in nav_choice:
     # --------------------------------------------------------------------------
     # CATEGORY 4: SERVER STORAGE & LOCAL BACKUPS
     # --------------------------------------------------------------------------
-    if selected_cat in ["Storage", "Overview"]:
+    if selected_cat == "Storage":
         with st.container():
             st.markdown("#### 📁 Server Storage & Backup Files")
             st.caption("Local filesystem directory paths for direct socket mode and file scans")
@@ -1947,10 +1945,7 @@ elif "Configuration" in nav_choice:
                     if st.button("💾 Save Storage Configuration", key="cfg_save_storage_only", type="primary", use_container_width=True):
                         do_save_all()
 
-    if selected_cat == "Overview":
-        st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
-        if st.button("💾 Save All Configurations", key="cfg_save_all_overview_bottom", type="primary", use_container_width=True):
-            do_save_all()
+
 
 
 # ==============================================================================
