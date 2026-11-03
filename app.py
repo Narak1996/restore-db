@@ -772,43 +772,43 @@ st.markdown("""
     }
 
     /* =========================================================================
-       PRELINE ADMIN SIDEBAR STYLING
+       TIMELINE TREE-STYLE SIDEBAR NAVIGATION (PURPLE-SLATE ENTERPRISE THEME)
        ========================================================================= */
     section[data-testid="stSidebar"] {
-        background-color: #0d1117 !important;
-        border-right: 1px solid #1f293d !important;
-        width: 270px !important;
-        min-width: 270px !important;
+        background-color: #242038 !important;
+        border-right: 1px solid #332b4d !important;
+        width: 275px !important;
+        min-width: 275px !important;
     }
     section[data-testid="stSidebar"] > div:first-child {
-        padding-top: 1.2rem !important;
+        padding-top: 1.1rem !important;
         padding-left: 0.85rem !important;
         padding-right: 0.85rem !important;
         padding-bottom: 1.2rem !important;
     }
     [data-testid="stSidebarCollapseButton"] {
-        color: #8b949e !important;
+        color: #a78bfa !important;
     }
 
     .preline-brand {
         display: flex;
         align-items: center;
         gap: 10px;
-        margin-bottom: 18px;
-        padding: 2px 4px 14px 4px;
-        border-bottom: 1px solid #1e2638;
+        margin-bottom: 16px;
+        padding: 4px 6px 14px 6px;
+        border-bottom: 1px solid rgba(167, 139, 250, 0.15);
     }
     .preline-logo-box {
         width: 36px;
         height: 36px;
         border-radius: 10px;
-        background: linear-gradient(135deg, rgba(37,99,235,0.25), rgba(99,102,241,0.2));
-        border: 1px solid rgba(59,130,246,0.45);
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.35), rgba(168, 85, 247, 0.25));
+        border: 1px solid rgba(167, 139, 250, 0.45);
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        box-shadow: 0 4px 12px rgba(37,99,235,0.2);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
     }
     .preline-title {
         font-weight: 700;
@@ -820,76 +820,154 @@ st.markdown("""
     .preline-subtitle {
         font-size: 0.63rem;
         font-weight: 700;
-        color: #60a5fa;
+        color: #a78bfa;
         letter-spacing: 0.9px;
         text-transform: uppercase;
     }
     .preline-nav-header {
         font-size: 0.68rem;
         font-weight: 700;
-        color: #64748b;
+        color: #94a3b8;
         letter-spacing: 0.8px;
         text-transform: uppercase;
         margin-bottom: 8px;
         padding-left: 6px;
     }
 
-
-    /* =========================================================================
-       SIDEBAR REAL NAVIGATION MENU STYLING (NO CHECKBOXES / NO RADIO CIRCLES)
-       ========================================================================= */
-    section[data-testid="stSidebar"] div[data-testid="stButton"] {
-        margin-bottom: 4px !important;
+    /* Accordion Parent Buttons (Top-level groups) */
+    section[data-testid="stSidebar"] div[data-testid="stButton"]:not(div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stButton"]) {
+        margin-bottom: 3px !important;
     }
-    section[data-testid="stSidebar"] div[data-testid="stButton"] button {
+    section[data-testid="stSidebar"] div[data-testid="stButton"]:not(div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stButton"]) button {
         display: flex !important;
         align-items: center !important;
-        justify-content: flex-start !important;
+        justify-content: space-between !important;
         text-align: left !important;
         padding: 9px 12px !important;
         border-radius: 8px !important;
         font-size: 0.88rem !important;
-        font-weight: 500 !important;
-        letter-spacing: 0.01em !important;
+        font-weight: 600 !important;
         width: 100% !important;
         transition: all 0.15s ease-in-out !important;
+        background: rgba(255, 255, 255, 0.03) !important;
+        color: #e2e8f0 !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
     }
-    /* Inactive Menu Item */
-    section[data-testid="stSidebar"] div[data-testid="stButton"] button[kind="secondary"] {
-        background: transparent !important;
-        color: #94a3b8 !important;
-        border: 1px solid transparent !important;
+    section[data-testid="stSidebar"] div[data-testid="stButton"]:not(div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stButton"]) button:hover {
+        background: rgba(167, 139, 250, 0.12) !important;
+        color: #ffffff !important;
+        border-color: rgba(167, 139, 250, 0.3) !important;
     }
-    section[data-testid="stSidebar"] div[data-testid="stButton"] button[kind="secondary"]:hover {
-        background: rgba(255, 255, 255, 0.05) !important;
-        color: #f8fafc !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    }
-    /* Active Menu Item */
-    section[data-testid="stSidebar"] div[data-testid="stButton"] button[kind="primary"] {
-        background: rgba(59, 130, 246, 0.16) !important;
-        color: #60a5fa !important;
-        border: 1px solid rgba(59, 130, 246, 0.38) !important;
-        font-weight: 600 !important;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25) !important;
-    }
-    section[data-testid="stSidebar"] div[data-testid="stButton"] button[kind="primary"]:hover {
-        background: rgba(59, 130, 246, 0.24) !important;
-        color: #93c5fd !important;
-        border: 1px solid rgba(59, 130, 246, 0.5) !important;
+    section[data-testid="stSidebar"] div[data-testid="stButton"]:not(div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stButton"]) button[kind="primary"] {
+        background: rgba(99, 102, 241, 0.22) !important;
+        color: #ddd6fe !important;
+        border: 1px solid rgba(167, 139, 250, 0.4) !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
     }
 
-    /* Submenu button styling in sidebar */
-    section[data-testid="stSidebar"] div[data-testid="stButton"]:has(button[key^="sidebar_sub_"]) button {
-        padding-left: 18px !important;
-        font-size: 0.81rem !important;
-        height: 32px !important;
-        min-height: 32px !important;
+    /* =========================================================================
+       SUBMENU TIMELINE TREE CONTAINER & CONTINUOUS GUIDE LINE
+       ========================================================================= */
+    section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"] {
+        border: none !important;
+        background: rgba(18, 15, 30, 0.45) !important;
+        border-radius: 9px !important;
+        padding: 6px 0 6px 0 !important;
+        margin: 2px 0 6px 4px !important;
+        width: calc(100% - 4px) !important;
+        position: relative !important;
+        box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.25) !important;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"] > div[data-testid="stVerticalBlock"] {
+        gap: 0px !important;
+    }
+    /* Continuous Vertical Tree Line */
+    section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"]::before {
+        content: "" !important;
+        position: absolute !important;
+        top: 17px !important;
+        bottom: 17px !important;
+        left: 20px !important;
+        width: 1.5px !important;
+        background: rgba(167, 139, 250, 0.32) !important;
+        z-index: 1 !important;
+    }
+
+    /* Submenu item buttons inside the tree container */
+    section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stButton"] {
         margin-bottom: 2px !important;
-        border-left: 2px solid rgba(59, 130, 246, 0.3) !important;
-        border-radius: 0 6px 6px 0 !important;
-        margin-left: 8px !important;
-        width: calc(100% - 8px) !important;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stButton"] button {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        text-align: left !important;
+        padding: 6px 10px 6px 38px !important;
+        border-radius: 6px !important;
+        font-size: 0.83rem !important;
+        font-weight: 500 !important;
+        min-height: 34px !important;
+        height: 34px !important;
+        width: 100% !important;
+        position: relative !important;
+        border: none !important;
+        transition: all 0.15s ease !important;
+    }
+
+    /* INACTIVE Submenu item */
+    section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stButton"] button[kind="secondary"] {
+        background: transparent !important;
+        color: #94a3b8 !important;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stButton"] button[kind="secondary"]:hover {
+        background: rgba(255, 255, 255, 0.05) !important;
+        color: #f1f5f9 !important;
+    }
+    /* Inactive Connector Dot (Hollow Ring Node on the line) */
+    section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stButton"] button[kind="secondary"]::before {
+        content: "" !important;
+        position: absolute !important;
+        left: 17px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        width: 7.5px !important;
+        height: 7.5px !important;
+        border-radius: 50% !important;
+        border: 1.5px solid rgba(167, 139, 250, 0.55) !important;
+        background: #242038 !important;
+        z-index: 2 !important;
+        transition: all 0.2s ease !important;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stButton"] button[kind="secondary"]:hover::before {
+        border-color: #a78bfa !important;
+        background: #332b4d !important;
+        transform: translateY(-50%) scale(1.2) !important;
+    }
+
+    /* ACTIVE Submenu item */
+    section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stButton"] button[kind="primary"] {
+        background: rgba(167, 139, 250, 0.18) !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stButton"] button[kind="primary"]:hover {
+        background: rgba(167, 139, 250, 0.26) !important;
+        color: #ffffff !important;
+    }
+    /* Active Connector Dot (Glowing solid node on the line) */
+    section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stButton"] button[kind="primary"]::before {
+        content: "" !important;
+        position: absolute !important;
+        left: 15px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        width: 11px !important;
+        height: 11px !important;
+        border-radius: 50% !important;
+        background: #a78bfa !important;
+        border: 2px solid #ffffff !important;
+        box-shadow: 0 0 10px rgba(167, 139, 250, 0.95), 0 0 2px #ffffff !important;
+        z-index: 3 !important;
     }
 
     /* =========================================================================
@@ -1034,8 +1112,8 @@ st.markdown("""
 
     /* Target status box in sidebar */
     .preline-status-box {
-        background: #131824;
-        border: 1px solid #1f293d;
+        background: #181528;
+        border: 1px solid #332b4d;
         border-radius: 8px;
         padding: 9px 12px;
         margin-top: 6px;
@@ -1233,62 +1311,112 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-    # Main Navigation: Real Menu Items (NO CHECKBOXES / NO RADIO CIRCLES)
+    # Main Navigation: Timeline Tree-Style Accordion Menu
     st.markdown('<div class="preline-nav-header">MAIN MENU</div>', unsafe_allow_html=True)
 
-    # 1. Restore Operations
-    op_active = (st.session_state.get("current_page", "Restore Operations") == "Restore Operations")
-    if st.button("🚀  Restore Operations", key="sidebar_nav_ops", type="primary" if op_active else "secondary", use_container_width=True):
-        st.session_state["current_page"] = "Restore Operations"
+    curr_p = st.session_state.get("current_page", "Restore Operations")
+
+    # 1. GROUP 1: RESTORE OPERATIONS
+    if "restore_expanded" not in st.session_state:
+        st.session_state["restore_expanded"] = True
+
+    is_in_restore = curr_p in ["Restore Operations", "Restore History", "Restore Validation"]
+    restore_is_open = st.session_state.get("restore_expanded", True)
+    restore_chev = "▲" if restore_is_open else "▼"
+
+    if st.button(
+        f"🚀  Restore Operations &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {restore_chev}",
+        key="sidebar_grp_restore",
+        type="primary" if is_in_restore else "secondary",
+        use_container_width=True
+    ):
+        st.session_state["restore_expanded"] = not restore_is_open
+        if not restore_is_open and not is_in_restore:
+            st.session_state["current_page"] = "Restore Operations"
         st.rerun()
 
-    # 2. Restore History
-    hist_active = (st.session_state.get("current_page") == "Restore History")
-    if st.button("📜  Restore History", key="sidebar_nav_hist", type="primary" if hist_active else "secondary", use_container_width=True):
-        st.session_state["current_page"] = "Restore History"
-        st.rerun()
+    if restore_is_open:
+        with st.container(border=True):
+            restore_subitems = [
+                ("🚀  Restore Operations", "Restore Operations"),
+                ("📜  Restore History", "Restore History"),
+                ("🛡️  Restore Validation", "Restore Validation")
+            ]
+            for sub_lbl, sub_pid in restore_subitems:
+                is_sub_active = (curr_p == sub_pid)
+                if st.button(
+                    sub_lbl,
+                    key=f"sidebar_sub_{sub_pid}",
+                    type="primary" if is_sub_active else "secondary",
+                    use_container_width=True
+                ):
+                    st.session_state["current_page"] = sub_pid
+                    st.rerun()
 
-    # 3. Restore Validation
-    val_active = (st.session_state.get("current_page") == "Restore Validation")
-    if st.button("🛡️  Restore Validation", key="sidebar_nav_val_page", type="primary" if val_active else "secondary", use_container_width=True):
-        st.session_state["current_page"] = "Restore Validation"
-        st.rerun()
-
-    # 4. Configuration Menu with Dropdown / Submenu
-    cfg_active = ("Configuration" in st.session_state.get("current_page", ""))
+    # 2. GROUP 2: CONFIGURATION
     if "cfg_expanded" not in st.session_state:
-        st.session_state["cfg_expanded"] = True
+        st.session_state["cfg_expanded"] = ("Configuration" in curr_p)
 
-    cfg_arrow = "▾" if st.session_state.get("cfg_expanded", True) else "▸"
-    if st.button(f"⚙️  Configuration &nbsp;{cfg_arrow}", key="sidebar_nav_cfg_main", type="primary" if cfg_active else "secondary", use_container_width=True):
-        st.session_state["current_page"] = "Configuration"
-        if cfg_active:
-            st.session_state["cfg_expanded"] = not st.session_state.get("cfg_expanded", True)
-        else:
-            st.session_state["cfg_expanded"] = True
+    is_in_cfg = ("Configuration" in curr_p)
+    cfg_is_open = st.session_state.get("cfg_expanded", False) or is_in_cfg
+    cfg_chev = "▲" if cfg_is_open else "▼"
+
+    if st.button(
+        f"⚙️  Configuration &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {cfg_chev}",
+        key="sidebar_grp_cfg",
+        type="primary" if is_in_cfg else "secondary",
+        use_container_width=True
+    ):
+        st.session_state["cfg_expanded"] = not cfg_is_open
+        if not cfg_is_open:
+            st.session_state["current_page"] = "Configuration"
         st.rerun()
 
-    # Dropdown sub-categories under Configuration
-    if st.session_state.get("cfg_expanded", True):
-        cfg_subitems = [
-            ("🌐  Remote SSH", "Remote SSH"),
-            ("🗄️  Restore DB con.", "Databases"),
-            ("🛡️  Restore Validation Con.", "Validation"),
-            ("🏢  Active Directory", "Active Directory"),
-            ("📁  Server Storage", "Storage")
-        ]
-        curr_cat = st.session_state.get("config_category", "Remote SSH")
-        for sub_label, sub_id in cfg_subitems:
-            is_sub_selected = (cfg_active and curr_cat == sub_id)
-            if st.button(
-                f"&nbsp;&nbsp;&nbsp;&nbsp;{sub_label}",
-                key=f"sidebar_sub_{sub_id}",
-                type="primary" if is_sub_selected else "secondary",
-                use_container_width=True
-            ):
-                st.session_state["current_page"] = "Configuration"
-                st.session_state["config_category"] = sub_id
-                st.rerun()
+    if cfg_is_open:
+        with st.container(border=True):
+            cfg_subitems = [
+                ("🌐  Remote SSH", "Remote SSH"),
+                ("🗄️  Restore DB con.", "Databases"),
+                ("🛡️  Restore Validation Con.", "Validation"),
+                ("🏢  Active Directory", "Active Directory"),
+                ("📁  Server Storage", "Storage")
+            ]
+            curr_cat = st.session_state.get("config_category", "Remote SSH")
+            for sub_lbl, sub_cid in cfg_subitems:
+                is_sub_active = (is_in_cfg and curr_cat == sub_cid)
+                if st.button(
+                    sub_lbl,
+                    key=f"sidebar_sub_cfg_{sub_cid}",
+                    type="primary" if is_sub_active else "secondary",
+                    use_container_width=True
+                ):
+                    st.session_state["current_page"] = "Configuration"
+                    st.session_state["config_category"] = sub_cid
+                    st.rerun()
+
+    # 3. GROUP 3: INFRASTRUCTURE (Collapsed Accordion)
+    if "infra_expanded" not in st.session_state:
+        st.session_state["infra_expanded"] = False
+    infra_is_open = st.session_state.get("infra_expanded", False)
+    infra_chev = "▲" if infra_is_open else "▼"
+    if st.button(
+        f"🏢  Infrastructure &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {infra_chev}",
+        key="sidebar_grp_infra",
+        type="secondary",
+        use_container_width=True
+    ):
+        st.session_state["infra_expanded"] = not infra_is_open
+        st.rerun()
+
+    if infra_is_open:
+        with st.container(border=True):
+            is_ssh_curr = (saved_mode == "ssh")
+            infra_items = [
+                (f"🔌  Mode: {'SSH Remote' if is_ssh_curr else 'Direct Socket'}", "mode"),
+                (f"🖥️  Target: {ssh_cfg.get('host', '10.21.0.143')}:{ssh_cfg.get('port', 22)}", "host"),
+            ]
+            for in_lbl, in_key in infra_items:
+                st.button(in_lbl, key=f"sidebar_sub_infra_{in_key}", type="secondary", use_container_width=True)
 
     # Spacer
     st.markdown("<div style='flex:1; min-height:24px;'></div>", unsafe_allow_html=True)
