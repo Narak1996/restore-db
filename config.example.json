@@ -29,7 +29,7 @@
         "cli_path": ""
     },
     "ad": {
-        "base_url": "http://172.168.0.118:8086/api/v1",
+        "base_url": "https://ad.mjqeducation.edu.kh/api/v1",
         "api_key": "",
         "app_name": "https://epurchase.mjqeducation.edu.kh"
     }

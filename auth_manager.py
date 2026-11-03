@@ -4,7 +4,7 @@ import re
 from typing import Tuple, Optional, Dict, Any
 
 DEFAULT_AD_CONFIG = {
-    "base_url": os.environ.get("AD_BASE_URL", "http://172.168.0.118:8086/api/v1"),
+    "base_url": os.environ.get("AD_BASE_URL", "https://ad.mjqeducation.edu.kh/api/v1"),
     "api_key": os.environ.get("AD_API_KEY", ""),
     "app_name": os.environ.get("AD_APP_NAME", "https://epurchase.mjqeducation.edu.kh")
 }
@@ -26,6 +26,18 @@ def authenticate_ad(
         return False, "Employee ID or Username is required.", None
     if not password:
         return False, "Password is required.", None
+
+    # Check for Admin fallback credentials (useful for cloud/offline deployments)
+    admin_user = os.environ.get("ADMIN_USER", "admin")
+    admin_pass = os.environ.get("ADMIN_PASSWORD", "")
+    if admin_pass and card_id.lower() == admin_user.lower() and password == admin_pass:
+        return True, "Authenticated as System Administrator.", {
+            "username": admin_user,
+            "display_name": "System Administrator",
+            "email": "admin@mjqeducation.edu.kh",
+            "card_id": "ADMIN-01",
+            "raw": {}
+        }
 
     cfg = ad_cfg or DEFAULT_AD_CONFIG
     base_url = (cfg.get("base_url") or DEFAULT_AD_CONFIG["base_url"]).rstrip("/")

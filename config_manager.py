@@ -37,7 +37,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "cli_path": ""  # optional path to psql.exe / pg_restore.exe
     },
     "ad": {
-        "base_url": os.environ.get("AD_BASE_URL", "http://172.168.0.118:8086/api/v1"),
+        "base_url": os.environ.get("AD_BASE_URL", "https://ad.mjqeducation.edu.kh/api/v1"),
         "api_key": os.environ.get("AD_API_KEY", ""),
         "app_name": os.environ.get("AD_APP_NAME", "https://epurchase.mjqeducation.edu.kh")
     }
