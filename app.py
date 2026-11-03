@@ -1118,6 +1118,7 @@ with st.sidebar:
         cfg_subitems = [
             ("🌐  Remote SSH", "Remote SSH"),
             ("🗄️  Restore DB con.", "Databases"),
+            ("🛡️  Restore Validation Con.", "Validation"),
             ("🏢  Active Directory", "Active Directory"),
             ("📁  Server Storage", "Storage")
         ]
@@ -1181,7 +1182,7 @@ else:
     curr_cat_name = st.session_state.get("config_category", "Remote SSH")
     page_title = f"Configuration › {curr_cat_name}"
     page_icon = "⚙️"
-    page_desc = "Categorized management for SSH, Restore DB con., Active Directory, and Storage"
+    page_desc = "Categorized management for SSH, Restore DB con., Validation, Active Directory, and Storage"
 
 # TOP BAR ROW: BREADCRUMBS, CONNECTION MODE, USER DROPDOWN
 with st.container():
@@ -1657,6 +1658,7 @@ elif "Configuration" in nav_choice:
     cat_map = {
         "Remote SSH": ("🌐 Remote SSH Server", "Remote Linux host connection, SFTP credentials, and backup paths"),
         "Databases": ("🗄️ Restore DB con.", "PostgreSQL and MariaDB target connection endpoints and credentials"),
+        "Validation": ("🛡️ Restore Validation Con.", "Multi-target SSH validation endpoints for restore verification and integrity checks"),
         "Active Directory": ("🏢 Active Directory Gateway", "Corporate Active Directory single sign-on service settings"),
         "Storage": ("📁 Server Storage & Backups", "Local system storage directories and backup search paths")
     }
@@ -1670,6 +1672,7 @@ elif "Configuration" in nav_choice:
     maria_cfg = config.get("mariadb", {})
     ad_data = config.get("ad", {})
     storage_data = config.get("server_storage", {})
+    val_conns = config.get("validation_connections", [])
 
     def do_save_all():
         new_config = {
@@ -1706,7 +1709,8 @@ elif "Configuration" in nav_choice:
                 "base_url": st.session_state.get("cfg_ad_base", ad_data.get("base_url", "https://ad.mjqeducation.edu.kh/api/v1")).strip(),
                 "api_key": st.session_state.get("cfg_ad_key", ad_data.get("api_key", "")).strip(),
                 "app_name": st.session_state.get("cfg_ad_app", ad_data.get("app_name", "https://epurchase.mjqeducation.edu.kh")).strip()
-            }
+            },
+            "validation_connections": config.get("validation_connections", [])
         }
         with st.spinner("Persisting configuration settings..."):
             save_config(new_config)
@@ -1853,6 +1857,184 @@ elif "Configuration" in nav_choice:
                 st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
                 if st.button("💾 Save Database Configuration", key="cfg_save_db_only", type="primary", use_container_width=True):
                     do_save_all()
+
+        st.divider()
+
+    # --------------------------------------------------------------------------
+    # CATEGORY: RESTORE VALIDATION CON.
+    # --------------------------------------------------------------------------
+    if selected_cat == "Validation":
+        with st.container():
+            val_top_c1, val_top_c2 = st.columns([3.6, 1.4], vertical_alignment="center")
+            with val_top_c1:
+                st.markdown("#### 🛡️ Restore Validation Con.")
+                st.caption("SSH connections used for restore validation, health verification, and query assertions")
+            with val_top_c2:
+                is_form_open = st.session_state.get("show_val_con_form", False)
+                btn_label = "✖️ Close Form" if is_form_open else "➕ Create New"
+                if st.button(btn_label, key="val_btn_toggle_create", type="primary" if not is_form_open else "secondary", use_container_width=True):
+                    if is_form_open:
+                        st.session_state["show_val_con_form"] = False
+                        st.session_state.pop("val_edit_index", None)
+                    else:
+                        st.session_state["show_val_con_form"] = True
+                        st.session_state.pop("val_edit_index", None)
+                    st.rerun()
+
+            # Inline Form for Create / Edit
+            if st.session_state.get("show_val_con_form", False):
+                edit_idx = st.session_state.get("val_edit_index")
+                val_list_temp = config.get("validation_connections", [])
+                is_editing = (edit_idx is not None and 0 <= edit_idx < len(val_list_temp))
+                target_item = val_list_temp[edit_idx] if is_editing else {}
+
+                form_title = f"✏️ Edit Validation Connection: {target_item.get('name', '')}" if is_editing else "➕ Create New Validation Connection"
+                st.markdown(f"""
+                <div style="background:#131824; border:1px solid #1f293d; border-radius:10px; padding:12px 16px; margin: 10px 0 16px 0;">
+                    <div style="font-size:0.92rem; font-weight:700; color:#60a5fa; display:flex; align-items:center; gap:8px;">
+                        {form_title}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                form_c1, form_c2 = st.columns(2, gap="medium")
+                with form_c1:
+                    v_name = st.text_input("Connection Name", value=target_item.get("name", ""), placeholder="e.g. Primary Validator", key="v_form_name")
+                    v_host = st.text_input("SSH Host / IP", value=target_item.get("host", "10.21.0.143"), key="v_form_host")
+                    v_port = st.number_input("SSH Port", min_value=1, max_value=65535, value=int(target_item.get("port", 22)), key="v_form_port")
+                with form_c2:
+                    v_user = st.text_input("SSH Username", value=target_item.get("user", "root"), key="v_form_user")
+                    v_auth = st.radio("Authentication Method", ["Password", "Private Key File (.pem / .id_rsa)"], index=0 if target_item.get("auth_type", "password") == "password" else 1, horizontal=True, key="v_form_auth")
+                    if v_auth == "Password":
+                        v_pass = st.text_input("SSH Password", value=target_item.get("password", ""), type="password", key="v_form_pass")
+                        v_key = ""
+                    else:
+                        v_key = st.text_input("Private Key Path on PC", value=target_item.get("key_path", ""), placeholder=r"e.g. C:\Users\user\.ssh\id_rsa", key="v_form_key")
+                        v_pass = ""
+
+                v_act_test, v_act_save, v_act_cancel = st.columns([1.5, 1.5, 1])
+                with v_act_test:
+                    if st.button("🔌 Test Connection", key="v_form_btn_test", use_container_width=True):
+                        with st.spinner("Connecting and testing SSH validation endpoint..."):
+                            t_payload = {
+                                "host": v_host,
+                                "port": v_port,
+                                "user": v_user,
+                                "auth_type": "password" if v_auth == "Password" else "key",
+                                "password": v_pass,
+                                "key_path": v_key
+                            }
+                            ok, msg = test_ssh_connection(t_payload)
+                        if ok:
+                            st.success(f"✅ {msg}")
+                        else:
+                            st.error(f"❌ {msg}")
+                with v_act_save:
+                    if st.button("💾 Save Connection", key="v_form_btn_save", type="primary", use_container_width=True):
+                        if not v_name.strip():
+                            st.error("Please enter a Connection Name.")
+                        elif not v_host.strip():
+                            st.error("Please enter an SSH Host / IP.")
+                        else:
+                            new_item = {
+                                "id": target_item.get("id") or f"val_{int(time.time())}",
+                                "name": v_name.strip(),
+                                "host": v_host.strip(),
+                                "port": int(v_port),
+                                "user": v_user.strip(),
+                                "auth_type": "password" if v_auth == "Password" else "key",
+                                "password": v_pass,
+                                "key_path": v_key.strip()
+                            }
+                            current_list = list(config.get("validation_connections", []))
+                            if is_editing:
+                                current_list[edit_idx] = new_item
+                            else:
+                                current_list.append(new_item)
+                            config["validation_connections"] = current_list
+                            save_config(config)
+                            st.session_state["show_val_con_form"] = False
+                            st.session_state.pop("val_edit_index", None)
+                            st.toast("Validation connection saved!", icon="🛡️")
+                            st.rerun()
+                with v_act_cancel:
+                    if st.button("Cancel", key="v_form_btn_cancel", use_container_width=True):
+                        st.session_state["show_val_con_form"] = False
+                        st.session_state.pop("val_edit_index", None)
+                        st.rerun()
+
+                st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
+
+            # Table matching spreadsheet columns
+            val_list = config.get("validation_connections", [])
+            if not val_list:
+                st.markdown("""
+                <div style="background:#111622; border:1px dashed #28354f; border-radius:8px; padding:28px; text-align:center; color:#94a3b8; margin-top:8px;">
+                    <div style="font-size:1.6rem; margin-bottom:6px;">🛡️</div>
+                    <div style="font-weight:600; color:#f1f5f9; margin-bottom:4px;">No Validation Connections Configured</div>
+                    <div style="font-size:0.82rem;">Click <b>Create New</b> above to add your first SSH validation endpoint.</div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                # Table Header Row
+                h_c1, h_c2, h_c3, h_c4, h_c5, h_c6 = st.columns([0.6, 2.5, 2.3, 1.8, 2.1, 2.1], vertical_alignment="center")
+                with h_c1:
+                    st.markdown("<span style='font-size:0.75rem; font-weight:700; color:#94a3b8; text-transform:uppercase;'>#</span>", unsafe_allow_html=True)
+                with h_c2:
+                    st.markdown("<span style='font-size:0.75rem; font-weight:700; color:#94a3b8; text-transform:uppercase;'>Connection Name</span>", unsafe_allow_html=True)
+                with h_c3:
+                    st.markdown("<span style='font-size:0.75rem; font-weight:700; color:#94a3b8; text-transform:uppercase;'>SSH Host / IP</span>", unsafe_allow_html=True)
+                with h_c4:
+                    st.markdown("<span style='font-size:0.75rem; font-weight:700; color:#94a3b8; text-transform:uppercase;'>SSH Username</span>", unsafe_allow_html=True)
+                with h_c5:
+                    st.markdown("<span style='font-size:0.75rem; font-weight:700; color:#94a3b8; text-transform:uppercase;'>Authentication Method</span>", unsafe_allow_html=True)
+                with h_c6:
+                    st.markdown("<span style='font-size:0.75rem; font-weight:700; color:#94a3b8; text-transform:uppercase;'>Action</span>", unsafe_allow_html=True)
+
+                st.markdown("<div style='height:1px; background:#1f293d; margin:6px 0 10px 0;'></div>", unsafe_allow_html=True)
+
+                for idx, v_item in enumerate(val_list):
+                    r_c1, r_c2, r_c3, r_c4, r_c5, r_c6 = st.columns([0.6, 2.5, 2.3, 1.8, 2.1, 2.1], vertical_alignment="center")
+                    with r_c1:
+                        st.markdown(f"<span style='font-weight:600; color:#64748b;'>#{idx + 1}</span>", unsafe_allow_html=True)
+                    with r_c2:
+                        st.markdown(f"<span style='font-weight:600; color:#f8fafc;'>{v_item.get('name', 'Validator')}</span>", unsafe_allow_html=True)
+                    with r_c3:
+                        st.markdown(f"<code style='color:#38bdf8;'>{v_item.get('host')}:{v_item.get('port', 22)}</code>", unsafe_allow_html=True)
+                    with r_c4:
+                        st.markdown(f"<code style='color:#cbd5e1;'>{v_item.get('user', 'root')}</code>", unsafe_allow_html=True)
+                    with r_c5:
+                        auth_label = "🔑 Password" if v_item.get("auth_type", "password") == "password" else "📜 Private Key"
+                        st.markdown(f"<span style='display:inline-block; padding:2px 8px; border-radius:4px; background:#161f30; border:1px solid #25334d; font-size:0.78rem; color:#94a3b8;'>{auth_label}</span>", unsafe_allow_html=True)
+                    with r_c6:
+                        act_col1, act_col2, act_col3 = st.columns([1, 1, 1])
+                        with act_col1:
+                            if st.button("🔌", key=f"val_row_ping_{idx}", help="Test Connection"):
+                                with st.spinner(f"Testing {v_item.get('name')}..."):
+                                    ok, msg = test_ssh_connection(v_item)
+                                if ok:
+                                    st.toast(f"✅ {v_item.get('name')}: Reachable!", icon="🔌")
+                                    st.success(f"✅ {v_item.get('name')}: {msg}")
+                                else:
+                                    st.toast(f"❌ {v_item.get('name')}: Connection Failed", icon="⚠️")
+                                    st.error(f"❌ {v_item.get('name')}: {msg}")
+                        with act_col2:
+                            if st.button("✏️", key=f"val_row_edit_{idx}", help="Edit Connection"):
+                                st.session_state["show_val_con_form"] = True
+                                st.session_state["val_edit_index"] = idx
+                                st.rerun()
+                        with act_col3:
+                            if st.button("🗑️", key=f"val_row_del_{idx}", help="Remove Connection"):
+                                del_name = v_item.get("name")
+                                current_list = list(config.get("validation_connections", []))
+                                if 0 <= idx < len(current_list):
+                                    current_list.pop(idx)
+                                    config["validation_connections"] = current_list
+                                    save_config(config)
+                                    st.toast(f"Removed '{del_name}'", icon="🗑️")
+                                    st.rerun()
+
+                    st.markdown("<div style='height:1px; background:rgba(255,255,255,0.04); margin:4px 0;'></div>", unsafe_allow_html=True)
 
         st.divider()
 

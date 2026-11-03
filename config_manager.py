@@ -43,7 +43,19 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "base_url": os.environ.get("AD_BASE_URL", "https://ad.mjqeducation.edu.kh/api/v1"),
         "api_key": DEFAULT_AD_KEY,
         "app_name": os.environ.get("AD_APP_NAME", "https://epurchase.mjqeducation.edu.kh")
-    }
+    },
+    "validation_connections": [
+        {
+            "id": "val_1",
+            "name": "Validation Host 1",
+            "host": "10.21.0.143",
+            "port": 22,
+            "user": "root",
+            "auth_type": "password",
+            "password": "",
+            "key_path": ""
+        }
+    ]
 }
 
 def load_config() -> Dict[str, Any]:
@@ -66,6 +78,19 @@ def load_config() -> Dict[str, Any]:
                 if "ad" not in data:
                     data["ad"] = {}
                 data["ad"]["api_key"] = DEFAULT_AD_KEY
+            if "validation_connections" not in data or not isinstance(data.get("validation_connections"), list):
+                data["validation_connections"] = [
+                    {
+                        "id": "val_1",
+                        "name": "Validation Host 1",
+                        "host": data.get("ssh", {}).get("host", "10.21.0.143"),
+                        "port": int(data.get("ssh", {}).get("port", 22)),
+                        "user": data.get("ssh", {}).get("user", "root"),
+                        "auth_type": data.get("ssh", {}).get("auth_type", "password"),
+                        "password": data.get("ssh", {}).get("password", ""),
+                        "key_path": data.get("ssh", {}).get("key_path", "")
+                    }
+                ]
             return data
     except Exception:
         return DEFAULT_CONFIG.copy()

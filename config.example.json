@@ -32,5 +32,17 @@
         "base_url": "https://ad.mjqeducation.edu.kh/api/v1",
         "api_key": "",
         "app_name": "https://epurchase.mjqeducation.edu.kh"
-    }
+    },
+    "validation_connections": [
+        {
+            "id": "val_1",
+            "name": "Primary Validation SSH",
+            "host": "10.21.0.143",
+            "port": 22,
+            "user": "root",
+            "auth_type": "password",
+            "password": "",
+            "key_path": ""
+        }
+    ]
 }
