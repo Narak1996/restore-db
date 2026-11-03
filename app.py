@@ -98,6 +98,9 @@ def on_file_dialog_dismissed():
 def on_proof_dialog_dismissed():
     st.session_state["show_proof_dialog"] = False
 
+def on_val_con_dialog_dismissed():
+    st.session_state["show_val_con_dialog"] = False
+
 def open_proof_modal(p_type: str, p_cfg: dict, p_name: str, file_path: str = "", file_size_mb: float = 0.0):
     st.session_state["proof_dialog_info"] = {
         "type": p_type,
@@ -486,6 +489,86 @@ def database_proof_dialog(db_type: str, db_cfg: dict, db_name: str, file_path: s
     with c_prf_close:
         if st.button("✖️ Close", key="prf_close_btn", use_container_width=True):
             st.session_state["show_proof_dialog"] = False
+            st.rerun()
+
+
+# ==============================================================================
+# MODAL DIALOG: RESTORE VALIDATION CONNECTION
+# ==============================================================================
+@st.dialog("🛡️ Validation Connection", width="medium", on_dismiss=on_val_con_dialog_dismissed)
+def validation_connection_dialog(target_item: dict, is_editing: bool, edit_idx: int = None):
+    dialog_heading = f"Edit Connection: {target_item.get('name', '')}" if is_editing else "Create New Validation Connection"
+    st.markdown(f"#### {dialog_heading}")
+    st.caption("Configure SSH endpoint parameters for database validation and integrity assertions.")
+
+    v_name = st.text_input("Connection Name", value=target_item.get("name", ""), placeholder="e.g. Primary Validator", key="dlg_v_name")
+
+    col_h, col_p = st.columns([3, 1])
+    with col_h:
+        v_host = st.text_input("SSH Host / IP", value=target_item.get("host", "10.21.0.143"), key="dlg_v_host")
+    with col_p:
+        v_port = st.number_input("SSH Port", min_value=1, max_value=65535, value=int(target_item.get("port", 22)), key="dlg_v_port")
+
+    v_user = st.text_input("SSH Username", value=target_item.get("user", "root"), key="dlg_v_user")
+    v_auth = st.radio("Authentication Method", ["Password", "Private Key File (.pem / .id_rsa)"], index=0 if target_item.get("auth_type", "password") == "password" else 1, horizontal=True, key="dlg_v_auth")
+
+    if v_auth == "Password":
+        v_pass = st.text_input("SSH Password", value=target_item.get("password", ""), type="password", key="dlg_v_pass")
+        v_key = ""
+    else:
+        v_key = st.text_input("Private Key Path on PC", value=target_item.get("key_path", ""), placeholder=r"e.g. C:\Users\user\.ssh\id_rsa", key="dlg_v_key")
+        v_pass = ""
+
+    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+
+    col_test, col_save, col_cancel = st.columns([1.3, 1.4, 0.9])
+    with col_test:
+        if st.button("🔌 Test Connection", key="dlg_v_test", use_container_width=True):
+            with st.spinner("Testing SSH reachability..."):
+                t_payload = {
+                    "host": v_host,
+                    "port": v_port,
+                    "user": v_user,
+                    "auth_type": "password" if v_auth == "Password" else "key",
+                    "password": v_pass,
+                    "key_path": v_key
+                }
+                ok, msg = test_ssh_connection(t_payload)
+            if ok:
+                st.success(f"✅ {msg}")
+            else:
+                st.error(f"❌ {msg}")
+    with col_save:
+        btn_save_txt = "💾 Save Changes" if is_editing else "➕ Add Connection"
+        if st.button(btn_save_txt, key="dlg_v_save", type="primary", use_container_width=True):
+            if not v_name.strip():
+                st.error("Please enter a Connection Name.")
+            elif not v_host.strip():
+                st.error("Please enter an SSH Host / IP.")
+            else:
+                new_item = {
+                    "id": target_item.get("id") or f"val_{int(time.time())}",
+                    "name": v_name.strip(),
+                    "host": v_host.strip(),
+                    "port": int(v_port),
+                    "user": v_user.strip(),
+                    "auth_type": "password" if v_auth == "Password" else "key",
+                    "password": v_pass,
+                    "key_path": v_key.strip()
+                }
+                current_list = list(config.get("validation_connections", []))
+                if is_editing and edit_idx is not None and 0 <= edit_idx < len(current_list):
+                    current_list[edit_idx] = new_item
+                else:
+                    current_list.append(new_item)
+                config["validation_connections"] = current_list
+                save_config(config)
+                st.session_state["show_val_con_dialog"] = False
+                st.toast(f"Saved '{new_item['name']}'!", icon="🛡️")
+                st.rerun()
+    with col_cancel:
+        if st.button("Cancel", key="dlg_v_cancel", use_container_width=True):
+            st.session_state["show_val_con_dialog"] = False
             st.rerun()
 
 
@@ -1870,100 +1953,14 @@ elif "Configuration" in nav_choice:
                 st.markdown("#### 🛡️ Restore Validation Con.")
                 st.caption("SSH connections used for restore validation, health verification, and query assertions")
             with val_top_c2:
-                is_form_open = st.session_state.get("show_val_con_form", False)
-                btn_label = "✖️ Close Form" if is_form_open else "➕ Create New"
-                if st.button(btn_label, key="val_btn_toggle_create", type="primary" if not is_form_open else "secondary", use_container_width=True):
-                    if is_form_open:
-                        st.session_state["show_val_con_form"] = False
-                        st.session_state.pop("val_edit_index", None)
-                    else:
-                        st.session_state["show_val_con_form"] = True
-                        st.session_state.pop("val_edit_index", None)
+                if st.button("➕ Create New", key="val_btn_open_create_dlg", type="primary", use_container_width=True):
+                    st.session_state["val_dialog_target"] = {}
+                    st.session_state["val_dialog_is_editing"] = False
+                    st.session_state["val_dialog_idx"] = None
+                    st.session_state["show_val_con_dialog"] = True
                     st.rerun()
 
-            # Inline Form for Create / Edit
-            if st.session_state.get("show_val_con_form", False):
-                edit_idx = st.session_state.get("val_edit_index")
-                val_list_temp = config.get("validation_connections", [])
-                is_editing = (edit_idx is not None and 0 <= edit_idx < len(val_list_temp))
-                target_item = val_list_temp[edit_idx] if is_editing else {}
-
-                form_title = f"✏️ Edit Validation Connection: {target_item.get('name', '')}" if is_editing else "➕ Create New Validation Connection"
-                st.markdown(f"""
-                <div style="background:#131824; border:1px solid #1f293d; border-radius:10px; padding:12px 16px; margin: 10px 0 16px 0;">
-                    <div style="font-size:0.92rem; font-weight:700; color:#60a5fa; display:flex; align-items:center; gap:8px;">
-                        {form_title}
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-
-                form_c1, form_c2 = st.columns(2, gap="medium")
-                with form_c1:
-                    v_name = st.text_input("Connection Name", value=target_item.get("name", ""), placeholder="e.g. Primary Validator", key="v_form_name")
-                    v_host = st.text_input("SSH Host / IP", value=target_item.get("host", "10.21.0.143"), key="v_form_host")
-                    v_port = st.number_input("SSH Port", min_value=1, max_value=65535, value=int(target_item.get("port", 22)), key="v_form_port")
-                with form_c2:
-                    v_user = st.text_input("SSH Username", value=target_item.get("user", "root"), key="v_form_user")
-                    v_auth = st.radio("Authentication Method", ["Password", "Private Key File (.pem / .id_rsa)"], index=0 if target_item.get("auth_type", "password") == "password" else 1, horizontal=True, key="v_form_auth")
-                    if v_auth == "Password":
-                        v_pass = st.text_input("SSH Password", value=target_item.get("password", ""), type="password", key="v_form_pass")
-                        v_key = ""
-                    else:
-                        v_key = st.text_input("Private Key Path on PC", value=target_item.get("key_path", ""), placeholder=r"e.g. C:\Users\user\.ssh\id_rsa", key="v_form_key")
-                        v_pass = ""
-
-                v_act_test, v_act_save, v_act_cancel = st.columns([1.5, 1.5, 1])
-                with v_act_test:
-                    if st.button("🔌 Test Connection", key="v_form_btn_test", use_container_width=True):
-                        with st.spinner("Connecting and testing SSH validation endpoint..."):
-                            t_payload = {
-                                "host": v_host,
-                                "port": v_port,
-                                "user": v_user,
-                                "auth_type": "password" if v_auth == "Password" else "key",
-                                "password": v_pass,
-                                "key_path": v_key
-                            }
-                            ok, msg = test_ssh_connection(t_payload)
-                        if ok:
-                            st.success(f"✅ {msg}")
-                        else:
-                            st.error(f"❌ {msg}")
-                with v_act_save:
-                    if st.button("💾 Save Connection", key="v_form_btn_save", type="primary", use_container_width=True):
-                        if not v_name.strip():
-                            st.error("Please enter a Connection Name.")
-                        elif not v_host.strip():
-                            st.error("Please enter an SSH Host / IP.")
-                        else:
-                            new_item = {
-                                "id": target_item.get("id") or f"val_{int(time.time())}",
-                                "name": v_name.strip(),
-                                "host": v_host.strip(),
-                                "port": int(v_port),
-                                "user": v_user.strip(),
-                                "auth_type": "password" if v_auth == "Password" else "key",
-                                "password": v_pass,
-                                "key_path": v_key.strip()
-                            }
-                            current_list = list(config.get("validation_connections", []))
-                            if is_editing:
-                                current_list[edit_idx] = new_item
-                            else:
-                                current_list.append(new_item)
-                            config["validation_connections"] = current_list
-                            save_config(config)
-                            st.session_state["show_val_con_form"] = False
-                            st.session_state.pop("val_edit_index", None)
-                            st.toast("Validation connection saved!", icon="🛡️")
-                            st.rerun()
-                with v_act_cancel:
-                    if st.button("Cancel", key="v_form_btn_cancel", use_container_width=True):
-                        st.session_state["show_val_con_form"] = False
-                        st.session_state.pop("val_edit_index", None)
-                        st.rerun()
-
-                st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
             # Table matching spreadsheet columns
             val_list = config.get("validation_connections", [])
@@ -2020,8 +2017,10 @@ elif "Configuration" in nav_choice:
                                     st.error(f"❌ {v_item.get('name')}: {msg}")
                         with act_col2:
                             if st.button("✏️", key=f"val_row_edit_{idx}", help="Edit Connection"):
-                                st.session_state["show_val_con_form"] = True
-                                st.session_state["val_edit_index"] = idx
+                                st.session_state["val_dialog_target"] = dict(v_item)
+                                st.session_state["val_dialog_is_editing"] = True
+                                st.session_state["val_dialog_idx"] = idx
+                                st.session_state["show_val_con_dialog"] = True
                                 st.rerun()
                         with act_col3:
                             if st.button("🗑️", key=f"val_row_del_{idx}", help="Remove Connection"):
@@ -2146,3 +2145,10 @@ if st.session_state.get("show_proof_dialog"):
             pinfo.get("file_path", ""),
             pinfo.get("file_size_mb", 0.0)
         )
+
+if st.session_state.get("show_val_con_dialog"):
+    validation_connection_dialog(
+        st.session_state.get("val_dialog_target", {}),
+        st.session_state.get("val_dialog_is_editing", False),
+        st.session_state.get("val_dialog_idx")
+    )
