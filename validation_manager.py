@@ -4,7 +4,17 @@ import time
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple
 import pandas as pd
-from PIL import Image, ImageDraw, ImageFont
+
+try:
+    from PIL import Image, ImageDraw, ImageFont
+except ImportError:
+    try:
+        import PIL
+        from PIL import Image, ImageDraw, ImageFont
+    except Exception:
+        Image = None
+        ImageDraw = None
+        ImageFont = None
 
 from verify_restore import execute_custom_query
 from ssh_manager import get_ssh_client
@@ -209,6 +219,16 @@ def save_table_screenshot(
     """
     desktop_dir = os.path.join(os.path.expanduser("~"), "Desktop", "validate-restore")
     os.makedirs(desktop_dir, exist_ok=True)
+
+    global Image, ImageDraw, ImageFont
+    if Image is None or ImageDraw is None or ImageFont is None:
+        try:
+            from PIL import Image as _Img, ImageDraw as _ImgDraw, ImageFont as _ImgFont
+            Image = _Img
+            ImageDraw = _ImgDraw
+            ImageFont = _ImgFont
+        except Exception as e:
+            raise RuntimeError(f"Pillow (PIL) image engine is required for screenshots: {e}")
 
     timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
     clean_db = re.sub(r'[^a-zA-Z0-9_-]', '', db_name) or "db"
