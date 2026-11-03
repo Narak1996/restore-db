@@ -14,7 +14,7 @@ import hashlib
 import threading
 from typing import Dict, Any, List, Optional
 import pandas as pd
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Query
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Query, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -195,7 +195,7 @@ def login(req: LoginRequest):
     return res_payload
 
 @app.get("/api/auth/me")
-def get_current_user():
+def get_current_user(authorization: Optional[str] = Header(None)):
     """Returns authenticated user profile."""
     u = {
         "id": "1",
@@ -203,6 +203,20 @@ def get_current_user():
         "email": "admin@dbrestore.local",
         "role": "admin"
     }
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ")[1]
+        try:
+            parts = token.split(".")
+            if len(parts) >= 2:
+                payload_str = parts[1]
+                # Add padding if needed
+                payload_str += "=" * (-len(payload_str) % 4)
+                payload_data = json.loads(base64.urlsafe_b64decode(payload_str.encode()).decode())
+                u["displayName"] = payload_data.get("name") or payload_data.get("sub") or u["displayName"]
+                u["email"] = payload_data.get("email") or u["email"]
+                u["username"] = payload_data.get("sub") or u.get("username", "admin")
+        except Exception:
+            pass
     return {
         "user": u,
         "data": {"user": u}
