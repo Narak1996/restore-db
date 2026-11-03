@@ -102,10 +102,18 @@ def authenticate_ad(
 
 def test_ad_connection(ad_cfg: Optional[Dict[str, Any]] = None) -> Tuple[bool, str]:
     """Tests reachability to Active Directory service."""
-    cfg = ad_cfg or DEFAULT_AD_CONFIG
-    base_url = (cfg.get("base_url") or DEFAULT_AD_CONFIG["base_url"]).strip().rstrip("/")
-    api_key = (cfg.get("api_key") or DEFAULT_AD_CONFIG["api_key"]).strip()
-    app_name = (cfg.get("app_name") or DEFAULT_AD_CONFIG["app_name"]).strip()
+    if not ad_cfg or not isinstance(ad_cfg, dict):
+        return False, "Active Directory configuration is empty. Please enter Base URL and API Key."
+
+    base_url = (ad_cfg.get("base_url") or "").strip().rstrip("/")
+    api_key = (ad_cfg.get("api_key") or "").strip()
+    app_name = (ad_cfg.get("app_name") or "").strip()
+
+    if not base_url:
+        return False, "AD Base URL is missing. Please enter the Base URL."
+    if not api_key:
+        return False, "AD API Key is missing. Please enter the API Key."
+
     try:
         r = requests.post(
             f"{base_url}/auth/loginUsername",
