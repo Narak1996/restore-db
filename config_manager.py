@@ -157,9 +157,14 @@ def list_server_backup_files(backup_dir: str, scan_subdirs: bool = False) -> lis
     results.sort(key=lambda x: x["modified"], reverse=True)
     return results
 
-def save_config(config: Dict[str, Any]) -> None:
-    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump(config, f, indent=4)
+def save_config(config: Dict[str, Any]) -> bool:
+    try:
+        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=4)
+        return True
+    except Exception as e:
+        print(f"Error saving config: {e}")
+        return False
 
 def test_mariadb_connection(config: Dict[str, Any]) -> Tuple[bool, str]:
     try:

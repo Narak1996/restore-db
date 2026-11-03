@@ -236,7 +236,16 @@ def get_config():
 def update_config(payload: Dict[str, Any]):
     """Updates and persists the application configuration."""
     cfg = payload.get("config", payload)
-    ok = config_manager.save_config(cfg)
+    current_cfg = config_manager.load_config()
+    
+    if isinstance(cfg, dict):
+        for k, v in cfg.items():
+            if k == "config" and isinstance(v, dict):
+                current_cfg.update(v)
+            else:
+                current_cfg[k] = v
+
+    ok = config_manager.save_config(current_cfg)
     if not ok:
         raise HTTPException(status_code=500, detail="Failed to save config.json")
     return {"success": True, "message": "Configuration saved successfully."}
