@@ -197,31 +197,43 @@ def save_config(config: Dict[str, Any]) -> bool:
         return False
 
 def test_mariadb_connection(config: Dict[str, Any]) -> Tuple[bool, str]:
+    port = int(config.get("port") or 3306)
+    user = config.get("user", "root")
     try:
         conn = pymysql.connect(
             host=config.get("host", "localhost"),
-            port=int(config.get("port", 3306)),
-            user=config.get("user", "root"),
+            port=port,
+            user=user,
             password=config.get("password", ""),
-            connect_timeout=5
+            connect_timeout=6
         )
         with conn.cursor() as cur:
             cur.execute("SELECT VERSION();")
             ver = cur.fetchone()[0]
         conn.close()
         return True, f"Connected to MariaDB/MySQL successfully (Version: {ver})"
+    except pymysql.err.OperationalError as e:
+        code = e.args[0] if len(e.args) > 0 and isinstance(e.args[0], int) else 0
+        if code == 1045:
+            return False, f"MariaDB reached on port {port}, but authentication failed: Access denied for user '{user}' (Check password)."
+        return False, f"MariaDB Error ({code}): {e.args[1] if len(e.args) > 1 else str(e)}"
     except Exception as e:
-        return False, str(e)
+        err_str = str(e)
+        if "unexpected packet" in err_str.lower():
+            return False, f"MariaDB reached on port {port}, but authentication handshake failed. Please verify user and password."
+        return False, err_str
 
 def test_postgresql_connection(config: Dict[str, Any]) -> Tuple[bool, str]:
+    port = int(config.get("port") or 5432)
+    user = config.get("user", "postgres")
     try:
         conn_str = (
             f"host={config.get('host', 'localhost')} "
-            f"port={config.get('port', 5432)} "
-            f"user={config.get('user', 'postgres')} "
+            f"port={port} "
+            f"user={user} "
             f"password={config.get('password', '')} "
             f"dbname={config.get('maintenance_db', 'postgres')} "
-            f"connect_timeout=5"
+            f"connect_timeout=6"
         )
         with psycopg.connect(conn_str) as conn:
             with conn.cursor() as cur:
@@ -229,7 +241,10 @@ def test_postgresql_connection(config: Dict[str, Any]) -> Tuple[bool, str]:
                 ver = cur.fetchone()[0]
         return True, f"Connected to PostgreSQL successfully ({ver.split(',')[0]})"
     except Exception as e:
-        return False, str(e)
+        err_msg = str(e)
+        if "password authentication failed" in err_msg.lower():
+            return False, f"PostgreSQL reached on port {port}, but password authentication failed for user '{user}'."
+        return False, err_msg
 
 def list_mariadb_databases(config: Dict[str, Any]) -> list:
     try:

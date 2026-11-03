@@ -604,6 +604,64 @@ def delete_validation_connection(con_id: str):
     config_manager.save_config(cfg)
     return {"success": True, "message": "Connection deleted"}
 
+@app.post("/api/validation/test-connection")
+def test_validation_connection(payload: Dict[str, Any]):
+    """Tests connectivity for a validation connection (MariaDB, PostgreSQL, or SSH)."""
+    name = str(payload.get("name", "")).strip()
+    raw_engine = str(payload.get("engine", "")).strip()
+    p_val = payload.get("port")
+    port = int(p_val) if p_val and str(p_val).strip() else 0
+    lower_name = name.lower()
+
+    if raw_engine in ["MariaDB", "PostgreSQL", "SSH"]:
+        engine = raw_engine
+    elif "maria" in lower_name or "mysql" in lower_name or port in (3306, 3307, 3308):
+        engine = "MariaDB"
+    elif "ssh" in lower_name or port == 22:
+        engine = "SSH"
+    else:
+        engine = "PostgreSQL"
+
+    host = str(payload.get("host", "")).strip()
+    user = str(payload.get("user", "")).strip()
+    password = str(payload.get("password", ""))
+
+    if not host:
+        return {"success": False, "message": "Host / IP is required."}
+    if not user:
+        return {"success": False, "message": "Database Username is required."}
+
+    if not port:
+        port = 3306 if engine == "MariaDB" else (5432 if engine == "PostgreSQL" else 22)
+
+    if engine == "SSH":
+        ok, msg = ssh_manager.test_ssh_connection({
+            "host": host,
+            "port": port,
+            "user": user,
+            "auth_type": payload.get("auth_type", "password"),
+            "password": password,
+            "key_path": payload.get("key_path", "")
+        })
+        return {"success": ok, "message": msg}
+    elif engine == "MariaDB":
+        ok, msg = config_manager.test_mariadb_connection({
+            "host": host,
+            "port": port,
+            "user": user,
+            "password": password
+        })
+        return {"success": ok, "message": msg}
+    else:  # PostgreSQL
+        ok, msg = config_manager.test_postgresql_connection({
+            "host": host,
+            "port": port,
+            "user": user,
+            "password": password,
+            "maintenance_db": payload.get("maintenance_db") or "postgres"
+        })
+        return {"success": ok, "message": msg}
+
 @app.api_route("/api/validation/tasks", methods=["GET", "POST"])
 def validation_tasks_endpoint(payload: Optional[Dict[str, Any]] = None):
     """Returns or updates list of configured validation rules/tasks."""

@@ -71,21 +71,32 @@ def resolve_connection_params(conn_name: str, config: Dict[str, Any]) -> Tuple[s
     for vc in config.get("validation_connections", []):
         if vc.get("name", "").strip() == clean_name or vc.get("host", "").strip() == clean_name:
             v_host = vc.get("host", "10.21.0.143")
-            v_port = int(vc.get("port", 5432 if "maria" not in clean_lower else 3307))
-            v_user = vc.get("user", "app_dev" if "root" not in vc.get("user", "") else "app_dev")
+            raw_eng = vc.get("engine", "")
+            p_val = int(vc.get("port") or 0)
+            if raw_eng in ["MariaDB", "PostgreSQL", "SSH"]:
+                db_type = raw_eng
+            elif any(k in clean_lower for k in ["maria", "mysql"]) or p_val in (3306, 3307, 3308):
+                db_type = "MariaDB"
+            elif any(k in clean_lower for k in ["ssh"]) or p_val == 22:
+                db_type = "SSH"
+            else:
+                db_type = "PostgreSQL"
+
+            default_port = 3306 if db_type == "MariaDB" else (5432 if db_type == "PostgreSQL" else 22)
+            v_port = p_val if p_val else default_port
+            v_user = vc.get("user") or ("root" if db_type == "MariaDB" else "postgres")
             v_pass = vc.get("password", "")
-            db_type = "MariaDB" if any(k in clean_lower for k in ["maria", "mysql"]) else "PostgreSQL"
             db_cfg = {
                 "host": v_host,
                 "port": v_port,
                 "user": v_user,
                 "password": v_pass,
-                "maintenance_db": "postgres"
+                "maintenance_db": vc.get("maintenance_db", "postgres")
             }
             ssh_cfg = {
                 "host": v_host,
-                "port": 22,
-                "user": vc.get("user", "user"),
+                "port": int(vc.get("ssh_port") or 22),
+                "user": vc.get("ssh_user") or vc.get("user", "user"),
                 "auth_type": vc.get("auth_type", "password"),
                 "password": v_pass,
                 "key_path": vc.get("key_path", "")
