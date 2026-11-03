@@ -1,0 +1,36 @@
+{
+    "connection_mode": "ssh",
+    "ssh": {
+        "host": "10.21.0.143",
+        "port": 22,
+        "user": "user",
+        "auth_type": "password",
+        "password": "",
+        "key_path": "",
+        "remote_backup_dir": "/App2/source_backup/s3/"
+    },
+    "server_storage": {
+        "backup_dir": "D:\\Narak\\Sql file",
+        "scan_subdirectories": false
+    },
+    "postgresql": {
+        "host": "10.21.0.143",
+        "port": 5432,
+        "user": "app_dev",
+        "password": "",
+        "maintenance_db": "postgres",
+        "cli_path": ""
+    },
+    "mariadb": {
+        "host": "10.21.0.143",
+        "port": 3307,
+        "user": "app_dev",
+        "password": "",
+        "cli_path": ""
+    },
+    "ad": {
+        "base_url": "http://172.168.0.118:8086/api/v1",
+        "api_key": "",
+        "app_name": "https://epurchase.mjqeducation.edu.kh"
+    }
+}

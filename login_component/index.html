@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Restore Database System - Sign In</title>
+  <!-- Google Fonts: Poppins -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Poppins', 'sans-serif'],
+          },
+          colors: {
+            cardBg: '#f6f5f8',
+            mauve: {
+              DEFAULT: '#8d626d',
+              hover: '#7a525c',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom outer gradient matching the warm terracotta to dusty rose background */
+    body {
+      background: linear-gradient(135deg, #7c4d3a 0%, #764d49 45%, #6e4856 100%);
+      min-height: 100vh;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    /* Soft outer shadow for the main card */
+    .main-card-shadow {
+      box-shadow: 0 25px 60px -15px rgba(25, 12, 16, 0.45);
+    }
+
+    /* Elevated Sign In button shadow */
+    .btn-mauve-shadow {
+      box-shadow: 0 10px 22px -4px rgba(141, 98, 109, 0.45);
+    }
+    .btn-mauve-shadow:hover {
+      box-shadow: 0 12px 26px -3px rgba(141, 98, 109, 0.6);
+    }
+
+    /* Input focus styling */
+    .custom-input:focus-within {
+      box-shadow: 0 0 0 2px rgba(141, 98, 109, 0.25);
+    }
+
+    /* Subtle floating animation for database elements */
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-7px); }
+    }
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.55; }
+      50% { opacity: 0.95; }
+    }
+    .animate-float-slow {
+      animation: floatSlow 5s ease-in-out infinite;
+    }
+    .animate-pulse-glow {
+      animation: pulseGlow 3.5s ease-in-out infinite;
+    }
+
+    /* Hide illustration panel on mobile / smaller screens */
+    @media (max-width: 768px) {
+      .illustration-panel {
+        display: none !important;
+      }
+    }
+  </style>
+  <!-- LOGIN_ERROR_INJECTION -->
+</head>
+<body class="flex items-center justify-center p-4 sm:p-6 md:p-10 antialiased selection:bg-[#8d626d] selection:text-white">
+
+  <!-- Main Card Container -->
+  <main id="mainCard" class="w-full max-w-[440px] md:max-w-[1040px] bg-[#f6f6f9] rounded-[32px] p-4 sm:p-5 main-card-shadow grid grid-cols-1 md:grid-cols-12 gap-0 items-center transition-all duration-300 relative">
+
+    <!-- Optional Desktop Panel Swap Button (Top Right Corner) -->
+    <button
+      type="button"
+      onclick="togglePanelPosition()"
+      title="Swap Illustration & Form Sides"
+      class="hidden md:flex items-center gap-1.5 absolute top-8 right-8 z-20 text-[10.5px] font-medium text-[#8d626d] bg-white/80 hover:bg-white px-3 py-1.5 rounded-full shadow-sm border border-[#8d626d]/20 transition-all"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+      </svg>
+      <span>Swap Sides</span>
+    </button>
+
+    <!-- Left Column (Default on Desktop): Restore Database System Illustration (Hidden on mobile <= 768px) -->
+    <section id="illustrationSection" class="illustration-panel hidden md:block md:col-span-6 md:order-2 w-full h-[540px] lg:h-[600px] rounded-[24px] overflow-hidden relative select-none shadow-inner">
+      
+      <!-- Custom "Restore Database System" Vector Illustration in Warm Sunset/Mauve/Purple Palette -->
+      <svg
+        viewBox="0 0 520 620"
+        preserveAspectRatio="xMidYMid slice"
+        class="w-full h-full object-cover"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <!-- Warm Sunset to Deep Violet-Mauve Background Gradient -->
+          <linearGradient id="dbSkyGrad" x1="0.2" y1="0" x2="0.8" y2="1">
+            <stop offset="0%" stop-color="#4b324b" />
+            <stop offset="24%" stop-color="#7c4e65" />
+            <stop offset="52%" stop-color="#c97d72" />
+            <stop offset="76%" stop-color="#e8ac84" />
+            <stop offset="100%" stop-color="#695380" />
+          </linearGradient>
+
+          <!-- Radiant Recovery Core Glow -->
+          <radialGradient id="coreGlow" cx="50%" cy="42%" r="48%">
+            <stop offset="0%" stop-color="#fff8e7" stop-opacity="0.95" />
+            <stop offset="35%" stop-color="#f9d29b" stop-opacity="0.65" />
+            <stop offset="70%" stop-color="#d1847c" stop-opacity="0.25" />
+            <stop offset="100%" stop-color="#4b324b" stop-opacity="0" />
+          </radialGradient>
+
+          <!-- 3D Database Cylinder Body Gradient (Deep Indigo/Plum) -->
+          <linearGradient id="cylinderBody" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#2b2d4a" />
+            <stop offset="35%" stop-color="#46436e" />
+            <stop offset="70%" stop-color="#313352" />
+            <stop offset="100%" stop-color="#1d1f36" />
+          </linearGradient>
+
+          <!-- 3D Database Cylinder Top Cap Gradient (Warm Sunset Lavender) -->
+          <linearGradient id="cylinderTop" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#fbe3b5" />
+            <stop offset="50%" stop-color="#d5b8df" />
+            <stop offset="100%" stop-color="#9482bd" />
+          </linearGradient>
+
+          <!-- Glowing Rim / Data Ring Gradient -->
+          <linearGradient id="glowRim" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#f8d89c" />
+            <stop offset="50%" stop-color="#ffffff" />
+            <stop offset="100%" stop-color="#e59c85" />
+          </linearGradient>
+
+          <!-- Cyber Landscape Grid / Hills -->
+          <linearGradient id="techHillLeft" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#9e87b8" />
+            <stop offset="100%" stop-color="#3a385c" />
+          </linearGradient>
+
+          <linearGradient id="techHillRight" x1="0" y1="0" x2="0.5" y2="1">
+            <stop offset="0%" stop-color="#7c689c" />
+            <stop offset="100%" stop-color="#1e2138" />
+          </linearGradient>
+
+          <!-- Shield Badge Gradient -->
+          <linearGradient id="shieldGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#fce2b1" />
+            <stop offset="50%" stop-color="#e39880" />
+            <stop offset="100%" stop-color="#8d5b6e" />
+          </linearGradient>
+
+          <!-- Bottom Dark Vignette for Text Readability -->
+          <linearGradient id="bottomFadeDb" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#181a2c" stop-opacity="0" />
+            <stop offset="65%" stop-color="#181a2c" stop-opacity="0.68" />
+            <stop offset="100%" stop-color="#121424" stop-opacity="0.92" />
+          </linearGradient>
+        </defs>
+
+        <!-- 1. Background Sky & Warm Recovery Halo -->
+        <rect width="520" height="620" fill="url(#dbSkyGrad)" />
+        <circle cx="260" cy="255" r="220" fill="url(#coreGlow)" />
+
+        <!-- 2. Subtle Background Data Grid & Binary/Node Streams -->
+        <g stroke="#ffffff" stroke-opacity="0.12" stroke-width="1">
+          <line x1="60" y1="0" x2="60" y2="620" stroke-dasharray="4 8" />
+          <line x1="140" y1="0" x2="140" y2="620" stroke-dasharray="2 10" />
+          <line x1="260" y1="0" x2="260" y2="620" stroke-dasharray="6 12" />
+          <line x1="380" y1="0" x2="380" y2="620" stroke-dasharray="2 10" />
+          <line x1="460" y1="0" x2="460" y2="620" stroke-dasharray="4 8" />
+          <path d="M 0 140 Q 260 180 520 140" fill="none" />
+          <path d="M 0 260 Q 260 300 520 260" fill="none" />
+          <path d="M 0 380 Q 260 420 520 380" fill="none" />
+        </g>
+
+        <!-- Vertical Ascending Data Recovery Beams -->
+        <g class="animate-pulse-glow">
+          <rect x="138" y="95" width="3" height="90" rx="1.5" fill="#fff6d6" opacity="0.6" />
+          <circle cx="139.5" cy="95" r="4" fill="#fff6d6" />
+          <rect x="378" y="110" width="3" height="110" rx="1.5" fill="#fff6d6" opacity="0.5" />
+          <circle cx="379.5" cy="110" r="4" fill="#fff6d6" />
+          <rect x="92" y="190" width="2" height="65" rx="1" fill="#fbd29c" opacity="0.45" />
+          <rect x="428" y="185" width="2" height="75" rx="1" fill="#fbd29c" opacity="0.45" />
+        </g>
+
+        <!-- 3. Stylized Layered Data Horizon Hills -->
+        <path d="M 0 390 Q 130 335 280 395 L 280 520 L 0 520 Z" fill="url(#techHillLeft)" opacity="0.85" />
+        <path d="M 190 395 Q 370 315 520 375 L 520 550 L 190 550 Z" fill="url(#techHillRight)" opacity="0.9" />
+        <path d="M 0 445 Q 240 390 520 455 L 520 620 L 0 620 Z" fill="#23253d" />
+
+        <!-- Glowing Circuit Lines on Foreground Slopes -->
+        <g stroke="#d5b8df" stroke-width="1.5" fill="none" opacity="0.35">
+          <path d="M 40 460 L 120 430 L 185 430" />
+          <circle cx="185" cy="430" r="3" fill="#fbe3b5" />
+          <path d="M 480 440 L 390 405 L 335 405" />
+          <circle cx="335" cy="405" r="3" fill="#fbe3b5" />
+          <path d="M 150 490 L 220 465 L 310 465 L 365 495" />
+        </g>
+
+        <!-- 4. Cloud Backup & Snapshot Nodes (Top Center/Left/Right) -->
+        <!-- Top Cloud Silhouette -->
+        <path
+          d="M 212 115 C 212 96, 238 86, 254 98 C 266 82, 298 86, 304 106 C 320 108, 326 128, 310 136 L 214 136 C 198 136, 196 116, 212 115 Z"
+          fill="#ffffff"
+          fill-opacity="0.22"
+          stroke="#fff6e0"
+          stroke-width="1.5"
+        />
+        <!-- Cloud Sync Down/Up Arrows -->
+        <path d="M 252 108 L 252 126 M 246 120 L 252 126 L 258 120" stroke="#fff9e6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+        <path d="M 268 126 L 268 108 M 262 114 L 268 108 L 274 114" stroke="#f8d89c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+
+        <!-- 5. Circular Restore / Time-Machine Orbit Rings Around Database -->
+        <!-- Outer Dashed Orbit -->
+        <ellipse cx="260" cy="275" rx="168" ry="68" fill="none" stroke="#fff3d1" stroke-width="1.4" stroke-dasharray="7 7" opacity="0.6" transform="rotate(-12 260 275)" />
+        
+        <!-- Primary Glowing Restore Arrow Arc (Counter-Clockwise Restore Ring) -->
+        <path
+          d="M 112 245 A 158 64 0 1 0 406 238"
+          fill="none"
+          stroke="url(#glowRim)"
+          stroke-width="4"
+          stroke-linecap="round"
+          transform="rotate(-8 260 275)"
+        />
+        <!-- Arrowhead on Restore Ring -->
+        <polygon points="104,254 124,244 118,266" fill="#fff5d6" />
+
+        <!-- 6. Main 3D Cylindrical Database Stack (Animated Float) -->
+        <g class="animate-float-slow">
+          <!-- Base Platform Shadow -->
+          <ellipse cx="260" cy="392" rx="96" ry="28" fill="#131424" opacity="0.7" />
+          <ellipse cx="260" cy="388" rx="84" ry="22" fill="none" stroke="#b89fd1" stroke-width="1.5" opacity="0.5" />
+
+          <!-- === TIER 3 (Bottom Database Platter) === -->
+          <path d="M 185 318 L 185 362 A 75 22 0 0 0 335 362 L 335 318 Z" fill="url(#cylinderBody)" />
+          <path d="M 185 362 A 75 22 0 0 0 335 362" fill="none" stroke="url(#glowRim)" stroke-width="2.5" />
+          <ellipse cx="260" cy="318" rx="75" ry="22" fill="url(#cylinderTop)" />
+          <!-- Status LEDs on Tier 3 -->
+          <circle cx="212" cy="348" r="3.5" fill="#7ef2c8" />
+          <circle cx="226" cy="351" r="3.5" fill="#fce2a6" />
+          <rect x="280" y="346" width="32" height="5" rx="2.5" fill="#d5b8df" opacity="0.55" />
+
+          <!-- === TIER 2 (Middle Database Platter) === -->
+          <path d="M 185 256 L 185 300 A 75 22 0 0 0 335 300 L 335 256 Z" fill="url(#cylinderBody)" />
+          <path d="M 185 300 A 75 22 0 0 0 335 300" fill="none" stroke="url(#glowRim)" stroke-width="2.5" />
+          <ellipse cx="260" cy="256" rx="75" ry="22" fill="url(#cylinderTop)" />
+          <!-- Status LEDs on Tier 2 -->
+          <circle cx="212" cy="286" r="3.5" fill="#7ef2c8" />
+          <circle cx="226" cy="289" r="3.5" fill="#7ef2c8" />
+          <rect x="280" y="284" width="32" height="5" rx="2.5" fill="#d5b8df" opacity="0.55" />
+
+          <!-- === TIER 1 (Top Database Platter) === -->
+          <path d="M 185 194 L 185 238 A 75 22 0 0 0 335 238 L 335 194 Z" fill="url(#cylinderBody)" />
+          <path d="M 185 238 A 75 22 0 0 0 335 238" fill="none" stroke="url(#glowRim)" stroke-width="2.5" />
+          <ellipse cx="260" cy="194" rx="75" ry="22" fill="url(#cylinderTop)" stroke="#fff6e0" stroke-width="1.2" />
+          <!-- Inner Concentric Core Ring on Top Platter -->
+          <ellipse cx="260" cy="194" rx="45" ry="12" fill="none" stroke="#695380" stroke-width="1.5" stroke-dasharray="6 4" />
+          <ellipse cx="260" cy="194" rx="18" ry="5" fill="#fff9e6" />
+          <!-- Status LEDs on Tier 1 -->
+          <circle cx="212" cy="224" r="3.5" fill="#7ef2c8" />
+          <circle cx="226" cy="227" r="3.5" fill="#7ef2c8" />
+          <rect x="280" y="222" width="32" height="5" rx="2.5" fill="#fbe3b5" opacity="0.8" />
+
+          <!-- Floating Verification Shield & Restore Checkmark Badge (Front Right of DB) -->
+          <g transform="translate(310, 255)">
+            <path
+              d="M 28 0 L 56 10 L 56 34 C 56 54, 42 68, 28 74 C 14 68, 0 54, 0 34 L 0 10 Z"
+              fill="url(#shieldGrad)"
+              stroke="#fff8e7"
+              stroke-width="2"
+            />
+            <!-- Checkmark / Restore Icon Inside Shield -->
+            <path
+              d="M 18 37 L 25 44 L 39 28"
+              fill="none"
+              stroke="#ffffff"
+              stroke-width="3.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </g>
+
+          <!-- Floating Point-in-Time Clock Snapshot Node (Front Left of DB) -->
+          <g transform="translate(126, 200)">
+            <circle cx="24" cy="24" r="22" fill="#322e4f" stroke="#fbe3b5" stroke-width="2" />
+            <path d="M 24 13 L 24 24 L 32 28" stroke="#fbe3b5" stroke-width="2.2" stroke-linecap="round" fill="none" />
+            <circle cx="24" cy="24" r="2.5" fill="#ffffff" />
+          </g>
+        </g>
+
+        <!-- 7. Dark Bottom Vignette Overlay for Crisp Text & Slider Controls -->
+        <rect x="0" y="400" width="520" height="220" fill="url(#bottomFadeDb)" />
+      </svg>
+
+      <!-- Top-Left System Status Pill Inside Illustration -->
+      <div class="absolute top-6 left-6 z-10 flex items-center gap-2 bg-[#1e1f35]/70 backdrop-blur-md border border-white/20 px-3.5 py-1.5 rounded-full">
+        <span class="w-2 h-2 rounded-full bg-[#7ef2c8] animate-pulse"></span>
+        <span class="text-[11px] font-medium text-white/95 tracking-wide">Restore Database System v4.2</span>
+      </div>
+
+      <!-- Bottom-Left Overlay Content -->
+      <div class="absolute bottom-7 left-7 sm:bottom-9 sm:left-9 right-7 z-10 flex flex-col items-start">
+        <!-- System Feature Tag -->
+        <span id="slideBadge" class="text-[10.5px] uppercase tracking-widest text-[#fce2b1] font-semibold mb-1.5 transition-opacity duration-300">
+          Automated Point-in-Time Recovery
+        </span>
+
+        <!-- Quote / Tagline Text -->
+        <p id="slideQuote" class="text-white text-[15px] sm:text-[16.5px] font-normal tracking-wide drop-shadow-sm mb-5 leading-snug transition-opacity duration-300">
+          Restore Database System — Reliable backups &amp; instant data recovery in one place.
+        </p>
+
+        <!-- Circular Navigation Arrow Buttons -->
+        <div class="flex items-center gap-3.5">
+          <button
+            type="button"
+            onclick="changeSlide(-1)"
+            aria-label="Previous system highlight"
+            class="w-[28px] h-[28px] rounded-full border border-white/80 flex items-center justify-center text-white/90 hover:bg-white/20 hover:border-white active:scale-90 transition-all"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+          </button>
+
+          <button
+            type="button"
+            onclick="changeSlide(1)"
+            aria-label="Next system highlight"
+            class="w-[28px] h-[28px] rounded-full border border-white/80 flex items-center justify-center text-white/90 hover:bg-white/20 hover:border-white active:scale-90 transition-all"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Right Column (Default on Desktop): Login Form Area -->
+    <section id="formSection" class="md:col-span-6 md:order-1 flex flex-col justify-center items-center px-4 py-10 sm:px-8 sm:py-12">
+      <div class="w-full max-w-[310px]">
+        
+        <!-- System Identity Badge -->
+        <div class="flex items-center justify-center gap-2 mb-3">
+          <div class="w-7 h-7 rounded-lg bg-[#8c626d]/15 flex items-center justify-center text-[#8c626d]">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+            </svg>
+          </div>
+          <span class="text-[11.5px] font-semibold uppercase tracking-wider text-[#8c626d]">
+            Restore Database System
+          </span>
+        </div>
+
+        <!-- Heading -->
+        
+
+        <!-- Trial / System Subtext -->
+        <p class="text-[11px] font-medium text-[#222222] mb-2.5 tracking-tight">
+          Sign in to manage snapshots &amp; database recovery
+        </p>
+
+        <!-- Form -->
+        <form id="loginForm" onsubmit="handleSignIn(event)" class="space-y-3.5" novalidate>
+          
+          <!-- Email Input -->
+          <div class="custom-input bg-white rounded-[10px] shadow-sm transition-shadow duration-200">
+            <input
+              type="email"
+              id="emailInput"
+              required
+              placeholder="Admin Email"
+              aria-label="Admin Email"
+              class="w-full bg-transparent px-4 py-3.5 text-[12px] text-gray-800 placeholder-[#9ca3af] focus:outline-none rounded-[10px]"
+            />
+          </div>
+
+          <!-- Password Input Wrapper -->
+          <div class="custom-input bg-white rounded-[10px] shadow-sm flex items-center pr-3.5 transition-shadow duration-200">
+            <input
+              type="password"
+              id="passwordInput"
+              required
+              placeholder="Password"
+              aria-label="Password"
+              class="w-full bg-transparent px-4 py-3.5 text-[12px] text-gray-800 placeholder-[#9ca3af] focus:outline-none rounded-[10px]"
+            />
+            <button
+              type="button"
+              id="togglePasswordBtn"
+              onclick="togglePassword()"
+              aria-label="Toggle password visibility"
+              class="text-[#9ca3af] hover:text-gray-600 focus:outline-none p-1 transition-colors"
+            >
+              <!-- Eye Slash Icon (Default) -->
+              <svg id="eyeSlashIcon" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+              </svg>
+              <!-- Open Eye Icon (Hidden initially) -->
+              <svg id="eyeOpenIcon" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Recovery Password Link -->
+          <div class="flex justify-end pt-0.5 pb-3">
+            <a
+              href="#recovery"
+              onclick="showStatusMessage('Database admin recovery link sent to your email.')"
+              class="text-[10.5px] font-medium text-[#8e8e93] hover:text-[#8c626d] transition-colors"
+            >
+              Recovery Password
+            </a>
+          </div>
+
+          <!-- Sign In Button -->
+          <button
+            type="submit"
+            class="w-full bg-[#91626c] hover:bg-[#7b525c] active:scale-[0.99] text-white text-[12.5px] font-medium py-3.5 rounded-[10px] btn-mauve-shadow transition-all duration-200"
+          >
+            Sign In
+          </button>
+
+          <!-- Feedback Message Box (No alert()) -->
+          <div id="statusBox" class="hidden text-center text-[11px] py-2 px-3 rounded-lg bg-[#8c626d]/10 text-[#8c626d] font-medium transition-all"></div>
+        </form>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // Toggle Password Visibility
+    function togglePassword() {
+      const passwordInput = document.getElementById('passwordInput');
+      const eyeSlashIcon = document.getElementById('eyeSlashIcon');
+      const eyeOpenIcon = document.getElementById('eyeOpenIcon');
+
+      if (passwordInput.type === 'password') {
+        passwordInput.type === 'text';
+        eyeSlashIcon.classList.add('hidden');
+        eyeOpenIcon.classList.remove('hidden');
+      } else {
+        passwordInput.type === 'password';
+        eyeSlashIcon.classList.remove('hidden');
+        eyeOpenIcon.classList.add('hidden');
+      }
+    }
+
+    // Swap Left / Right Panel Positions on Desktop
+    function togglePanelPosition() {
+      const illustrationSection = document.getElementById('illustrationSection');
+      const formSection = document.getElementById('formSection');
+
+      if (illustrationSection.classList.contains('md:order-1')) {
+        illustrationSection.classList.replace('md:order-1', 'md:order-2');
+        formSection.classList.replace('md:order-2', 'md:order-1');
+      } else {
+        illustrationSection.classList.replace('md:order-2', 'md:order-1');
+        formSection.classList.replace('md:order-1', 'md:order-2');
+      }
+    }
+
+    // Streamlit Component Messaging Helper (AJAX / WebSocket without page reload)
+    function sendToStreamlit(type, data) {
+      window.parent.postMessage({
+        isStreamlitMessage: true,
+        type: type,
+        ...data
+      }, "*");
+    }
+
+    // Tell Streamlit component is ready
+    window.addEventListener("DOMContentLoaded", function() {
+      sendToStreamlit("streamlit:componentReady", { apiVersion: 1 });
+      sendToStreamlit("streamlit:setFrameHeight", { height: window.innerHeight || 850 });
+    });
+
+    // Handle Form Submission via AJAX / Streamlit message (NO PAGE RELOAD!)
+    function handleSignIn(event) {
+      if (event) event.preventDefault();
+      const email = document.getElementById('emailInput').value.trim();
+      const password = document.getElementById('passwordInput').value.trim();
+
+      if (!email || !password) {
+        showStatusMessage('Please enter both your email / ID and password.');
+        return;
+      }
+
+      showStatusMessage('Authenticating with Active Directory...');
+      const btn = document.querySelector('button[type="submit"]');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'Signing In...';
+      }
+
+      // Send to Streamlit via async message (NO PAGE RELOAD!)
+      sendToStreamlit("streamlit:setComponentValue", {
+        value: { email: email, password: password, reqId: Date.now() }
+      });
+    }
+
+    // Listen for response from Streamlit backend
+    window.addEventListener("message", function(event) {
+      if (event.data && event.data.type === "streamlit:render") {
+        const args = event.data.args || {};
+        if (args.error) {
+          showStatusMessage("❌ " + args.error);
+          const btn = document.querySelector('button[type="submit"]');
+          if (btn) {
+            btn.disabled = false;
+            btn.innerText = 'Sign In';
+          }
+        }
+      }
+    });
+
+    // Display non-intrusive status message
+    let statusTimeout;
+    function showStatusMessage(msg) {
+      const statusBox = document.getElementById('statusBox');
+      statusBox.textContent = msg;
+      statusBox.classList.remove('hidden');
+
+      clearTimeout(statusTimeout);
+      statusTimeout = setTimeout(() => {
+        statusBox.classList.add('hidden');
+      }, 3500);
+    }
+
+    // Interactive Highlights for the Restore Database System Slider Arrows
+    const slides = [
+      {
+        badge: "Automated Point-in-Time Recovery",
+        quote: "Restore Database System — Reliable backups & instant data recovery in one place."
+      },
+      {
+        badge: "Zero-Downtime Cluster Snapshots",
+        quote: "Roll back corrupted tables or full database clusters within seconds."
+      },
+      {
+        badge: "Encrypted Cloud Vault",
+        quote: "End-to-end integrity verification for every automated backup cycle."
+      }
+    ];
+    let currentSlide = 0;
+
+    function changeSlide(direction) {
+      const quoteEl = document.getElementById('slideQuote');
+      const badgeEl = document.getElementById('slideBadge');
+      quoteEl.style.opacity = '0';
+      badgeEl.style.opacity = '0';
+
+      setTimeout(() => {
+        currentSlide = (currentSlide + direction + slides.length) % slides.length;
+        quoteEl.textContent = slides[currentSlide].quote;
+        badgeEl.textContent = slides[currentSlide].badge;
+        quoteEl.style.opacity = '1';
+        badgeEl.style.opacity = '1';
+      }, 200);
+    }
+  </script>
+</body>
+</html>

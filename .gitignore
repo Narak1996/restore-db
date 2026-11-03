@@ -1,0 +1,28 @@
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Python Cache & Database
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+*.db
+*.sqlite3
+
+# Uploads & Scratch
+uploads/*
+!uploads/.gitkeep
+scratch/
+
+# Local sensitive configs (keep sample or template)
+config.json
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
