@@ -419,13 +419,17 @@ def cancel_restore():
 # RESTORE HISTORY ENDPOINTS
 # ------------------------------------------------------------------------------
 
-@app.get("/api/history")
-def get_history(limit: int = 50, offset: int = 0):
-    """Returns restore history audit records from SQLite database."""
+@app.api_route("/api/history", methods=["GET", "POST"])
+def get_history(limit: int = 100, offset: int = 0, body: Optional[Dict[str, Any]] = None):
+    """Returns restore history audit records from SQLite database formatted for AsynDataTable or simple fetchers."""
     records = history_manager.get_restore_history(limit=limit)
     return {
         "success": True,
-        "data": records,
+        "data": {
+            "records": records,
+            "totalRecord": len(records)
+        },
+        "records": records,
         "totalRecord": len(records)
     }
 
