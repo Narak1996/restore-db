@@ -996,6 +996,63 @@ st.markdown("""
         border-radius: 50%;
         background-color: #10b981;
     }
+
+    /* =========================================================================
+       GLOBAL ENTERPRISE BLUE ACCENT FOR ALL PRIMARY CONTROLS (ELIMINATES STREAMLIT RED)
+       ========================================================================= */
+    /* Primary buttons in main content */
+    div.block-container button[kind="primary"],
+    div.block-container button[data-testid="baseButton-primary"],
+    div[data-testid="stFormSubmitButton"] button {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+        border: 1px solid #3b82f6 !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.28) !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    div.block-container button[kind="primary"]:hover,
+    div.block-container button[data-testid="baseButton-primary"]:hover,
+    div[data-testid="stFormSubmitButton"] button:hover {
+        background: linear-gradient(135deg, #1d4ed8, #1e40af) !important;
+        border-color: #60a5fa !important;
+        box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45) !important;
+        transform: translateY(-1px);
+    }
+    div.block-container button[kind="primary"]:active,
+    div.block-container button[data-testid="baseButton-primary"]:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3) !important;
+    }
+
+    /* All input and selectbox focus borders - eliminate Streamlit default red #ff4b4b */
+    div[data-baseweb="select"] > div:focus-within,
+    div[data-baseweb="input"] > div:focus-within,
+    div[data-testid="stTextInput"] input:focus,
+    div[data-testid="stNumberInput"] input:focus,
+    div[data-testid="stTextArea"] textarea:focus {
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 1px #3b82f6, 0 0 10px rgba(59, 130, 246, 0.2) !important;
+    }
+
+    /* Streamlit Tabs active indicator and text */
+    button[data-baseweb="tab"][aria-selected="true"] {
+        color: #60a5fa !important;
+        border-bottom-color: #3b82f6 !important;
+    }
+    div[data-baseweb="tab-highlight"] {
+        background-color: #3b82f6 !important;
+    }
+
+    /* Streamlit Radio & Checkbox checked accents */
+    div[data-testid="stCheckbox"] input:checked + span,
+    div[data-testid="stRadio"] label[data-checked="true"] {
+        color: #60a5fa !important;
+    }
+    div[data-testid="stRadio"] div[role="radiogroup"] label[data-checked="true"] div[aria-hidden="true"] {
+        background-color: #3b82f6 !important;
+        border-color: #3b82f6 !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -1076,7 +1133,6 @@ with st.sidebar:
             ):
                 st.session_state["current_page"] = "Configuration"
                 st.session_state["config_category"] = sub_id
-                st.session_state["config_function_dropdown_widget"] = sub_id
                 st.rerun()
 
     # Spacer
@@ -1660,30 +1716,46 @@ elif "Configuration" in nav_choice:
         st.toast("Configuration saved successfully!", icon="💾")
         st.success("✅ Configuration settings saved to config.json!")
 
-    # Keep dropdown widget synchronized with config_category
-    if st.session_state.get("config_function_dropdown_widget") != current_cat:
-        st.session_state["config_function_dropdown_widget"] = current_cat
+    selected_cat = current_cat
 
-    def on_dropdown_select():
-        st.session_state["config_category"] = st.session_state["config_function_dropdown_widget"]
-
-    # Categorized Dropdown Selector Header
-    c_cat_drop, c_cat_save = st.columns([3.8, 1.4], vertical_alignment="center")
-    with c_cat_drop:
-        selected_cat = st.selectbox(
-            "Configuration Function",
-            cat_keys,
-            format_func=lambda k: cat_map[k][0],
-            key="config_function_dropdown_widget",
-            on_change=on_dropdown_select
-        )
-        st.session_state["config_category"] = selected_cat
-
-    with c_cat_save:
-        if st.button("💾 Save Configuration", key="cfg_top_save_btn", type="primary", use_container_width=True):
+    # Header Card with Category Title, Description & Save Action
+    cfg_head_c1, cfg_head_c2 = st.columns([3.6, 1.4], vertical_alignment="center")
+    with cfg_head_c1:
+        st.markdown(f"""
+        <div style="display:flex; align-items:center; gap:12px; padding: 2px 0 6px 0;">
+            <div style="width:42px; height:42px; border-radius:10px; background:linear-gradient(135deg, rgba(37,99,235,0.22), rgba(59,130,246,0.12)); border:1px solid rgba(59,130,246,0.38); display:flex; align-items:center; justify-content:center; font-size:1.35rem; flex-shrink:0;">
+                {cat_map[selected_cat][0].split(' ')[0]}
+            </div>
+            <div>
+                <h3 style="margin:0; font-size:1.18rem; font-weight:700; color:#f8fafc; letter-spacing:-0.2px;">
+                    {cat_map[selected_cat][0]}
+                </h3>
+                <p style="margin:2px 0 0 0; font-size:0.8rem; color:#94a3b8;">
+                    {cat_map[selected_cat][1]}
+                </p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    with cfg_head_c2:
+        if st.button("💾 Save All Changes", key="cfg_top_save_btn", type="primary", use_container_width=True):
             do_save_all()
 
-    st.markdown(f"<div style='font-size:0.78rem; color:#94a3b8; margin: 2px 0 14px 0;'>{cat_map[selected_cat][1]}</div>", unsafe_allow_html=True)
+    # Sleek Horizontal Category Navigation Tabs / Pills
+    tab_cols = st.columns(len(cat_keys))
+    for idx, k in enumerate(cat_keys):
+        with tab_cols[idx]:
+            is_active = (selected_cat == k)
+            tab_label = cat_map[k][0].split(" (")[0]
+            if st.button(
+                tab_label,
+                key=f"cfg_nav_pill_{k}",
+                type="primary" if is_active else "secondary",
+                use_container_width=True
+            ):
+                st.session_state["config_category"] = k
+                st.rerun()
+
+    st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
 
     # --------------------------------------------------------------------------
     # CATEGORY 1: REMOTE SSH SERVER
@@ -1874,6 +1946,11 @@ elif "Configuration" in nav_choice:
                 if selected_cat == "Storage":
                     if st.button("💾 Save Storage Configuration", key="cfg_save_storage_only", type="primary", use_container_width=True):
                         do_save_all()
+
+    if selected_cat == "Overview":
+        st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
+        if st.button("💾 Save All Configurations", key="cfg_save_all_overview_bottom", type="primary", use_container_width=True):
+            do_save_all()
 
 
 # ==============================================================================

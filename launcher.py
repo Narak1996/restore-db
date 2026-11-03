@@ -36,6 +36,13 @@ def main():
     threading.Thread(target=open_browser, daemon=True).start()
 
     import streamlit.web.cli as stcli
+    os.environ["STREAMLIT_THEME_BASE"] = "dark"
+    os.environ["STREAMLIT_THEME_PRIMARY_COLOR"] = "#2563eb"
+    os.environ["STREAMLIT_THEME_BACKGROUND_COLOR"] = "#0b0f19"
+    os.environ["STREAMLIT_THEME_SECONDARY_BACKGROUND_COLOR"] = "#111827"
+    os.environ["STREAMLIT_THEME_TEXT_COLOR"] = "#f8fafc"
+    os.environ["STREAMLIT_THEME_FONT"] = "sans serif"
+
     sys.argv = [
         "streamlit",
         "run",
@@ -47,6 +54,11 @@ def main():
         "--browser.gatherUsageStats=false",
         "--server.enableCORS=false",
         "--server.enableXsrfProtection=false",
+        "--theme.base=dark",
+        "--theme.primaryColor=#2563eb",
+        "--theme.backgroundColor=#0b0f19",
+        "--theme.secondaryBackgroundColor=#111827",
+        "--theme.textColor=#f8fafc",
     ]
     sys.exit(stcli.main())
 
