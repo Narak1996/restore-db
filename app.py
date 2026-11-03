@@ -1117,7 +1117,7 @@ with st.sidebar:
     if st.session_state.get("cfg_expanded", True):
         cfg_subitems = [
             ("🌐  Remote SSH", "Remote SSH"),
-            ("🗄️  Database Engines", "Databases"),
+            ("🗄️  Restore DB con.", "Databases"),
             ("🏢  Active Directory", "Active Directory"),
             ("📁  Server Storage", "Storage")
         ]
@@ -1181,7 +1181,7 @@ else:
     curr_cat_name = st.session_state.get("config_category", "Remote SSH")
     page_title = f"Configuration › {curr_cat_name}"
     page_icon = "⚙️"
-    page_desc = "Categorized management for SSH, Database Engines, Active Directory, and Storage"
+    page_desc = "Categorized management for SSH, Restore DB con., Active Directory, and Storage"
 
 # TOP BAR ROW: BREADCRUMBS, CONNECTION MODE, USER DROPDOWN
 with st.container():
@@ -1656,7 +1656,7 @@ elif "Restore History" in nav_choice:
 elif "Configuration" in nav_choice:
     cat_map = {
         "Remote SSH": ("🌐 Remote SSH Server", "Remote Linux host connection, SFTP credentials, and backup paths"),
-        "Databases": ("🗄️ Database Engines", "PostgreSQL and MariaDB target connection endpoints and credentials"),
+        "Databases": ("🗄️ Restore DB con.", "PostgreSQL and MariaDB target connection endpoints and credentials"),
         "Active Directory": ("🏢 Active Directory Gateway", "Corporate Active Directory single sign-on service settings"),
         "Storage": ("📁 Server Storage & Backups", "Local system storage directories and backup search paths")
     }
@@ -1813,11 +1813,11 @@ elif "Configuration" in nav_choice:
         st.divider()
 
     # --------------------------------------------------------------------------
-    # CATEGORY 2: DATABASE ENGINES (POSTGRESQL & MARIADB)
+    # CATEGORY 2: RESTORE DB CON. (POSTGRESQL & MARIADB)
     # --------------------------------------------------------------------------
     if selected_cat == "Databases":
         with st.container():
-            st.markdown("#### 🗄️ Database Engines (PostgreSQL & MariaDB)")
+            st.markdown("#### 🗄️ Restore DB con. (PostgreSQL & MariaDB)")
             st.caption("Target database server instances for restoration operations")
             cfg_col1, cfg_col2 = st.columns(2, gap="medium")
             with cfg_col1:
