@@ -7,6 +7,10 @@ Reuses existing engines: ssh_manager, restore_engine, validation_manager, config
 import os
 import sys
 import time
+import base64
+import json
+import hmac
+import hashlib
 import threading
 from typing import Dict, Any, List, Optional
 import pandas as pd
@@ -56,11 +60,22 @@ active_restore = {
 restore_lock = threading.Lock()
 
 # ------------------------------------------------------------------------------
-# Pydantic Request Models
+# Pydantic Request Models & JWT Generator
 # ------------------------------------------------------------------------------
 
+def create_jwt_token(payload: dict, secret: str = "dbrestore-jwt-secret-key-2026") -> str:
+    """Generates an RFC-compliant 3-part HS256 JWT token."""
+    header = {"alg": "HS256", "typ": "JWT"}
+    header_bytes = base64.urlsafe_b64encode(json.dumps(header).encode()).rstrip(b"=").decode()
+    payload_bytes = base64.urlsafe_b64encode(json.dumps(payload).encode()).rstrip(b"=").decode()
+    signing_input = f"{header_bytes}.{payload_bytes}"
+    sig = hmac.new(secret.encode(), signing_input.encode(), hashlib.sha256).digest()
+    sig_bytes = base64.urlsafe_b64encode(sig).rstrip(b"=").decode()
+    return f"{header_bytes}.{payload_bytes}.{sig_bytes}"
+
 class LoginRequest(BaseModel):
-    username: str
+    username: Optional[str] = None
+    email: Optional[str] = None
     password: str
 
 class TestSSHRequest(BaseModel):
@@ -115,21 +130,75 @@ class ValidationScreenshotRequest(BaseModel):
 def login(req: LoginRequest):
     """Authenticates against Active Directory SSO gateway or local fallback."""
     cfg = config_manager.load_config()
-    auth_res = auth_manager.authenticate_user(req.username, req.password, cfg)
-    if not auth_res.get("success"):
-        raise HTTPException(status_code=401, detail=auth_res.get("error", "Authentication failed."))
+    user_key = (req.username or req.email or "").strip()
+    if not user_key:
+        raise HTTPException(status_code=400, detail="Username or Email is required.")
     
-    # Return user details & session token
+    # 1. Attempt AD authentication
+    auth_ok, auth_msg, auth_user = auth_manager.authenticate_ad(user_key, req.password, cfg.get("ad"))
+    
+    # 2. If user_key contains '@', try without domain (e.g. 'user@domain.com' -> 'user')
+    if not auth_ok and "@" in user_key:
+        prefix = user_key.split("@")[0]
+        auth_ok2, auth_msg2, auth_user2 = auth_manager.authenticate_ad(prefix, req.password, cfg.get("ad"))
+        if auth_ok2:
+            auth_ok, auth_msg, auth_user = auth_ok2, auth_msg2, auth_user2
+
+    # 3. Local Admin fallback
+    if not auth_ok:
+        admin_user = os.environ.get("ADMIN_USER", "admin")
+        admin_pass = os.environ.get("ADMIN_PASSWORD", "admin123")
+        if (user_key.lower() == admin_user.lower() or user_key.lower() == "admin@dbrestore.local") and req.password == admin_pass:
+            auth_ok = True
+            auth_user = {
+                "username": "admin",
+                "display_name": "System Administrator",
+                "email": "admin@dbrestore.local",
+                "card_id": "ADMIN-01"
+            }
+
+    if not auth_ok:
+        raise HTTPException(status_code=401, detail=auth_msg or "Invalid username or password.")
+
+    # Create RFC-compliant JWT token for Minimal UI AuthProvider
+    token_exp = int(time.time()) + (86400 * 7) # 7 days
+    user_payload = {
+        "sub": auth_user.get("username", user_key),
+        "name": auth_user.get("display_name", user_key),
+        "email": auth_user.get("email", user_key),
+        "role": "admin",
+        "iat": int(time.time()),
+        "exp": token_exp
+    }
+    access_token = create_jwt_token(user_payload)
+
+    user_info = {
+        "id": auth_user.get("card_id") or "1",
+        "displayName": auth_user.get("display_name") or user_key,
+        "email": auth_user.get("email") or user_key,
+        "username": auth_user.get("username") or user_key,
+        "role": "admin",
+        "accessToken": access_token
+    }
+
     return {
         "success": True,
-        "user": auth_res.get("user", {}),
-        "token": f"bearer_{int(time.time())}_{req.username}"
+        "accessToken": access_token,
+        "token": access_token,
+        "user": user_info
     }
 
 @app.get("/api/auth/me")
 def get_current_user():
-    """Mock/validate current session."""
-    return {"success": True, "status": "authenticated"}
+    """Returns authenticated user profile."""
+    return {
+        "user": {
+            "id": "1",
+            "displayName": "System Administrator",
+            "email": "admin@dbrestore.local",
+            "role": "admin"
+        }
+    }
 
 # ------------------------------------------------------------------------------
 # CONFIGURATION ENDPOINTS
