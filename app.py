@@ -1047,37 +1047,36 @@ with st.sidebar:
     if "cfg_expanded" not in st.session_state:
         st.session_state["cfg_expanded"] = True
 
-    c_cfg_btn, c_cfg_toggle = st.columns([4.2, 1.2])
-    with c_cfg_btn:
-        if st.button("⚙️  Configuration", key="sidebar_nav_cfg_main", type="primary" if cfg_active else "secondary", use_container_width=True):
-            st.session_state["current_page"] = "Configuration"
-            st.rerun()
-    with c_cfg_toggle:
-        arr_icon = "▼" if st.session_state["cfg_expanded"] else "▶"
-        if st.button(arr_icon, key="sidebar_nav_cfg_toggle", help="Toggle Configuration categories", use_container_width=True):
-            st.session_state["cfg_expanded"] = not st.session_state["cfg_expanded"]
-            st.rerun()
+    cfg_arrow = "▾" if st.session_state.get("cfg_expanded", True) else "▸"
+    if st.button(f"⚙️  Configuration &nbsp;{cfg_arrow}", key="sidebar_nav_cfg_main", type="primary" if cfg_active else "secondary", use_container_width=True):
+        st.session_state["current_page"] = "Configuration"
+        if cfg_active:
+            st.session_state["cfg_expanded"] = not st.session_state.get("cfg_expanded", True)
+        else:
+            st.session_state["cfg_expanded"] = True
+        st.rerun()
 
     # Dropdown sub-categories under Configuration
     if st.session_state.get("cfg_expanded", True):
         cfg_subitems = [
-            ("🌐 Remote SSH", "Remote SSH"),
-            ("🗄️ Database Engines", "Databases"),
-            ("🏢 Active Directory", "Active Directory"),
-            ("📁 Server Storage", "Storage"),
-            ("📋 Full Overview", "Overview")
+            ("🌐  Remote SSH", "Remote SSH"),
+            ("🗄️  Database Engines", "Databases"),
+            ("🏢  Active Directory", "Active Directory"),
+            ("📁  Server Storage", "Storage"),
+            ("📋  Full Overview", "Overview")
         ]
         curr_cat = st.session_state.get("config_category", "Remote SSH")
         for sub_label, sub_id in cfg_subitems:
             is_sub_selected = (cfg_active and curr_cat == sub_id)
             if st.button(
-                f"↳ {sub_label}",
+                f"&nbsp;&nbsp;&nbsp;&nbsp;{sub_label}",
                 key=f"sidebar_sub_{sub_id}",
                 type="primary" if is_sub_selected else "secondary",
                 use_container_width=True
             ):
                 st.session_state["current_page"] = "Configuration"
                 st.session_state["config_category"] = sub_id
+                st.session_state["config_function_dropdown_widget"] = sub_id
                 st.rerun()
 
     # Spacer
@@ -1661,6 +1660,13 @@ elif "Configuration" in nav_choice:
         st.toast("Configuration saved successfully!", icon="💾")
         st.success("✅ Configuration settings saved to config.json!")
 
+    # Keep dropdown widget synchronized with config_category
+    if st.session_state.get("config_function_dropdown_widget") != current_cat:
+        st.session_state["config_function_dropdown_widget"] = current_cat
+
+    def on_dropdown_select():
+        st.session_state["config_category"] = st.session_state["config_function_dropdown_widget"]
+
     # Categorized Dropdown Selector Header
     c_cat_drop, c_cat_save = st.columns([3.8, 1.4], vertical_alignment="center")
     with c_cat_drop:
@@ -1668,8 +1674,8 @@ elif "Configuration" in nav_choice:
             "Configuration Function",
             cat_keys,
             format_func=lambda k: cat_map[k][0],
-            index=cat_keys.index(current_cat),
-            key="config_function_dropdown_widget"
+            key="config_function_dropdown_widget",
+            on_change=on_dropdown_select
         )
         st.session_state["config_category"] = selected_cat
 
