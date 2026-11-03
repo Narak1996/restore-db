@@ -422,15 +422,17 @@ def cancel_restore():
 @app.api_route("/api/history", methods=["GET", "POST"])
 def get_history(limit: int = 100, offset: int = 0, body: Optional[Dict[str, Any]] = None):
     """Returns restore history audit records from SQLite database formatted for AsynDataTable or simple fetchers."""
-    records = history_manager.get_restore_history(limit=limit)
+    records = history_manager.get_history(limit=limit)
     return {
         "success": True,
         "data": {
             "records": records,
-            "totalRecord": len(records)
+            "totalRecord": len(records),
+            "recordsFiltered": len(records)
         },
         "records": records,
-        "totalRecord": len(records)
+        "totalRecord": len(records),
+        "recordsFiltered": len(records)
     }
 
 @app.get("/api/history/{record_id}")
@@ -445,31 +447,91 @@ def get_history_detail(record_id: int):
 # RESTORE VALIDATION ENDPOINTS
 # ------------------------------------------------------------------------------
 
-@app.get("/api/validation/connections")
-def get_validation_connections():
-    """Returns connection options available for validation queries."""
+@app.api_route("/api/validation/connections", methods=["GET", "POST"])
+def validation_connections_endpoint(payload: Optional[Dict[str, Any]] = None):
+    """Returns or updates connection options available for validation queries."""
     cfg = config_manager.load_config()
-    opts = validation_manager.get_available_connection_options(cfg)
     vcs = cfg.get("validation_connections", [])
-    return {"success": True, "options": opts, "connections": vcs}
 
-@app.get("/api/validation/tasks")
-def get_validation_tasks():
-    """Returns list of configured validation rules/tasks."""
+    if payload is not None and isinstance(payload, dict):
+        if "connections" in payload:
+            cfg["validation_connections"] = payload["connections"]
+            config_manager.save_config(cfg)
+            vcs = cfg["validation_connections"]
+        elif "connection" in payload:
+            new_con = payload["connection"]
+            existing = [c for c in vcs if c.get("id") != new_con.get("id")]
+            existing.append(new_con)
+            cfg["validation_connections"] = existing
+            config_manager.save_config(cfg)
+            vcs = existing
+
+    opts = validation_manager.get_available_connection_options(cfg)
+    return {
+        "success": True,
+        "options": opts,
+        "connections": vcs,
+        "data": {
+            "records": vcs,
+            "totalRecord": len(vcs),
+            "recordsFiltered": len(vcs)
+        },
+        "records": vcs,
+        "totalRecord": len(vcs),
+        "recordsFiltered": len(vcs)
+    }
+
+@app.delete("/api/validation/connections/{con_id}")
+def delete_validation_connection(con_id: str):
+    """Deletes a validation connection by id."""
+    cfg = config_manager.load_config()
+    vcs = cfg.get("validation_connections", [])
+    updated = [c for c in vcs if str(c.get("id")) != str(con_id) and str(c.get("name")) != str(con_id)]
+    cfg["validation_connections"] = updated
+    config_manager.save_config(cfg)
+    return {"success": True, "message": "Connection deleted"}
+
+@app.api_route("/api/validation/tasks", methods=["GET", "POST"])
+def validation_tasks_endpoint(payload: Optional[Dict[str, Any]] = None):
+    """Returns or updates list of configured validation rules/tasks."""
     cfg = config_manager.load_config()
     tasks = cfg.get("validation_tasks", [])
-    return {"success": True, "tasks": tasks}
 
-@app.post("/api/validation/tasks")
-def save_validation_tasks(payload: Dict[str, Any]):
-    """Persists validation tasks to config.json."""
-    tasks = payload.get("tasks", [])
+    if payload is not None and isinstance(payload, dict):
+        if "tasks" in payload:
+            tasks = payload["tasks"]
+            cfg["validation_tasks"] = tasks
+            config_manager.save_config(cfg)
+        elif "task" in payload:
+            new_task = payload["task"]
+            existing = [t for t in tasks if t.get("id") != new_task.get("id")]
+            existing.append(new_task)
+            cfg["validation_tasks"] = existing
+            config_manager.save_config(cfg)
+            tasks = existing
+
+    return {
+        "success": True,
+        "tasks": tasks,
+        "data": {
+            "records": tasks,
+            "totalRecord": len(tasks),
+            "recordsFiltered": len(tasks)
+        },
+        "records": tasks,
+        "totalRecord": len(tasks),
+        "recordsFiltered": len(tasks)
+    }
+
+@app.delete("/api/validation/tasks/{task_id}")
+def delete_validation_task(task_id: str):
+    """Deletes a validation task by id."""
     cfg = config_manager.load_config()
-    cfg["validation_tasks"] = tasks
-    ok = config_manager.save_config(cfg)
-    if not ok:
-        raise HTTPException(status_code=500, detail="Failed to save validation tasks.")
-    return {"success": True, "message": "Validation tasks saved successfully."}
+    tasks = cfg.get("validation_tasks", [])
+    updated = [t for t in tasks if str(t.get("id")) != str(task_id)]
+    cfg["validation_tasks"] = updated
+    config_manager.save_config(cfg)
+    return {"success": True, "message": "Task deleted"}
 
 @app.post("/api/validation/execute-all")
 def execute_validation_all(req: ValidationExecuteAllRequest):

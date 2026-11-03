@@ -204,3 +204,42 @@ def browse_remote_directory(ssh_cfg: Dict[str, Any], remote_path: Optional[str] 
         "items": items,
         "error": error_msg
     }
+
+
+def explore_directory(
+    mode: str,
+    current_path: Optional[str],
+    config: Dict[str, Any],
+    search_query: Optional[str] = None
+) -> Dict[str, Any]:
+    """Unified file explorer for local or SSH remote files."""
+    if mode == "ssh":
+        res = browse_remote_directory(config.get("ssh", {}), current_path)
+    else:
+        res = browse_local_directory(current_path)
+
+    items = res.get("items", [])
+    if search_query:
+        sq = search_query.strip().lower()
+        items = [i for i in items if sq in i.get("name", "").lower() or i.get("is_dir")]
+
+    # Format size for frontend
+    for it in items:
+        if it.get("is_dir"):
+            it["size_formatted"] = "Folder"
+        else:
+            mb = it.get("size_mb", 0.0)
+            it["size_formatted"] = f"{mb:.2f} MB" if mb >= 1.0 else f"{int(it.get('raw_size', 0) / 1024)} KB"
+
+    cur = res.get("current_path", "")
+    par = res.get("parent_path", "")
+
+    return {
+        "success": not bool(res.get("error")),
+        "path": cur,
+        "current_path": cur,
+        "parent": par,
+        "parent_path": par,
+        "items": items,
+        "error": res.get("error")
+    }

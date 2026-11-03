@@ -116,6 +116,8 @@ def get_history(limit: int = 200) -> List[Dict[str, Any]]:
             result.append(d)
         return result
 
+get_restore_history = get_history
+
 def clear_history() -> None:
     init_db()
     with get_db_connection() as conn:
