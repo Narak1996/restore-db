@@ -245,7 +245,7 @@ def update_config(payload: Dict[str, Any]):
 def test_ssh(req: TestSSHRequest):
     """Pings and tests SSH reachability."""
     t0 = time.time()
-    res = ssh_manager.test_ssh_connection({
+    ok, msg = ssh_manager.test_ssh_connection({
         "host": req.host,
         "port": req.port,
         "user": req.user,
@@ -255,8 +255,8 @@ def test_ssh(req: TestSSHRequest):
     })
     elapsed_ms = round((time.time() - t0) * 1000, 1)
     return {
-        "success": res.get("success", False),
-        "message": res.get("message", ""),
+        "success": ok,
+        "message": msg,
         "latency_ms": elapsed_ms
     }
 
@@ -264,7 +264,7 @@ def test_ssh(req: TestSSHRequest):
 def test_db(req: TestDBRequest):
     """Pings PostgreSQL or MariaDB instance."""
     if req.engine == "PostgreSQL":
-        ok, msg = restore_engine.test_postgresql_connection({
+        ok, msg = config_manager.test_postgresql_connection({
             "host": req.host,
             "port": req.port,
             "user": req.user,
@@ -272,7 +272,7 @@ def test_db(req: TestDBRequest):
             "maintenance_db": req.maintenance_db or "postgres"
         })
     else:
-        ok, msg = restore_engine.test_mariadb_connection({
+        ok, msg = config_manager.test_mariadb_connection({
             "host": req.host,
             "port": req.port,
             "user": req.user,
@@ -283,7 +283,7 @@ def test_db(req: TestDBRequest):
 @app.post("/api/config/test-ad")
 def test_ad(payload: Dict[str, Any]):
     """Tests Active Directory SSO reachability."""
-    ad_cfg = payload.get("ad_config", {})
+    ad_cfg = payload.get("ad_config") or payload.get("ad") or payload
     ok, msg = auth_manager.test_ad_connection(ad_cfg)
     return {"success": ok, "message": msg}
 

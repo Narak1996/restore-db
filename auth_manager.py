@@ -98,3 +98,27 @@ def authenticate_ad(
         return False, "Unable to reach Active Directory service at " + base_url, None
     except Exception as e:
         return False, f"Authentication error: {str(e)}", None
+
+
+def test_ad_connection(ad_cfg: Optional[Dict[str, Any]] = None) -> Tuple[bool, str]:
+    """Tests reachability to Active Directory service."""
+    cfg = ad_cfg or DEFAULT_AD_CONFIG
+    base_url = (cfg.get("base_url") or DEFAULT_AD_CONFIG["base_url"]).strip().rstrip("/")
+    api_key = (cfg.get("api_key") or DEFAULT_AD_CONFIG["api_key"]).strip()
+    app_name = (cfg.get("app_name") or DEFAULT_AD_CONFIG["app_name"]).strip()
+    try:
+        r = requests.post(
+            f"{base_url}/auth/loginUsername",
+            headers={
+                "Content-Type": "application/json",
+                "X-API-KEY": api_key,
+                "x-app-name": app_name
+            },
+            json={"username": "ping", "password": "ping"},
+            timeout=6
+        )
+        if r.status_code in [200, 400, 401, 404]:
+            return True, f"Active Directory service reachable! (HTTP {r.status_code})"
+        return False, f"AD Service responded with HTTP {r.status_code}: {r.text[:100]}"
+    except Exception as e:
+        return False, f"Failed to reach AD service: {str(e)}"
