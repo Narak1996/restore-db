@@ -121,13 +121,14 @@ def file_browser_dialog(is_ssh_mode: bool, config: dict, ssh_cfg: dict):
     ])
 
     with tab_browse:
-        if is_ssh_mode:
-            current_dir = st.session_state.get("remote_explorer_dir", ssh_cfg.get("remote_backup_dir", "/App2/source_backup"))
-            explorer_data = browse_remote_directory(ssh_cfg, current_dir)
-        else:
-            default_local = config.get("server_storage", {}).get("backup_dir", r"D:\Narak\Sql file")
-            current_dir = st.session_state.get("local_explorer_dir", default_local)
-            explorer_data = browse_local_directory(current_dir)
+        with st.spinner("Loading directory contents..."):
+            if is_ssh_mode:
+                current_dir = st.session_state.get("remote_explorer_dir", ssh_cfg.get("remote_backup_dir", "/App2/source_backup"))
+                explorer_data = browse_remote_directory(ssh_cfg, current_dir)
+            else:
+                default_local = config.get("server_storage", {}).get("backup_dir", r"D:\Narak\Sql file")
+                current_dir = st.session_state.get("local_explorer_dir", default_local)
+                explorer_data = browse_local_directory(current_dir)
 
         if "dlg_path_in" not in st.session_state:
             st.session_state["dlg_path_in"] = explorer_data.get("current_path", current_dir)
@@ -563,7 +564,7 @@ st.markdown("""
         visibility: hidden;
     }
     .block-container {
-        padding-top: 2rem !important;
+        padding-top: 1rem !important;
         padding-bottom: 1.5rem !important;
         padding-left: 2rem !important;
         padding-right: 2rem !important;
@@ -730,26 +731,86 @@ st.markdown("""
     }
 
     /* =========================================================================
-       HEADER CONNECTION & PROFILE DROPDOWN STYLING
+       GLOBAL NEON PROGRESS LOADER & SPINNER STYLING
+       ========================================================================= */
+    div[data-testid="stStatusWidget"] {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100vw !important;
+        height: 3px !important;
+        background: transparent !important;
+        z-index: 9999999 !important;
+        border: none !important;
+        overflow: hidden !important;
+    }
+    div[data-testid="stStatusWidget"] > div {
+        background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 50%, #818cf8 100%) !important;
+        background-size: 200% 100% !important;
+        animation: topBarLoadingAnim 1.2s linear infinite !important;
+        height: 3px !important;
+        box-shadow: 0 0 12px rgba(59, 130, 246, 0.9), 0 0 6px rgba(96, 165, 250, 0.8) !important;
+    }
+    @keyframes topBarLoadingAnim {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+    /* Modern Streamlit Spinner & Toast */
+    div[data-testid="stSpinner"] {
+        background: rgba(13, 17, 23, 0.92) !important;
+        border: 1px solid rgba(59, 130, 246, 0.35) !important;
+        border-radius: 8px !important;
+        padding: 10px 16px !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+        backdrop-filter: blur(8px) !important;
+    }
+    div[data-testid="stSpinner"] > div {
+        border-top-color: #38bdf8 !important;
+    }
+    div[data-testid="stProgress"] > div > div > div {
+        background: linear-gradient(90deg, #2563eb, #38bdf8) !important;
+        border-radius: 9999px !important;
+    }
+
+    /* =========================================================================
+       TOP BAR NAVBAR (CONNECTION CONTROL & PROFILE DROPDOWN)
        ========================================================================= */
     div[data-testid="stSegmentedControl"] {
-        background: #0f172a !important;
-        border: 1px solid #1e293b !important;
+        background: #0d1117 !important;
+        border: 1px solid #1f293d !important;
         border-radius: 8px !important;
         padding: 2px !important;
+        height: 38px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    div[data-testid="stSegmentedControl"] > div {
+        height: 32px !important;
+    }
+    div[data-testid="stSegmentedControl"] button {
+        height: 32px !important;
+        font-size: 0.82rem !important;
+        padding: 4px 12px !important;
+        border-radius: 6px !important;
     }
     div[data-testid="stPopover"] > button {
-        background: #111827 !important;
+        background: #0d1117 !important;
         border: 1px solid #1f293d !important;
         color: #e2e8f0 !important;
         border-radius: 8px !important;
-        padding: 6px 12px !important;
-        font-size: 0.84rem !important;
+        padding: 0 14px !important;
+        height: 38px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 0.82rem !important;
         font-weight: 500 !important;
         transition: all 0.15s ease !important;
     }
     div[data-testid="stPopover"] > button:hover {
-        background: #1e293b !important;
+        background: #161f30 !important;
         border-color: #3b82f6 !important;
         color: #60a5fa !important;
     }
@@ -1002,99 +1063,117 @@ with st.sidebar:
 
 
 # ==============================================================================
-# HEADER (WITH TITLE, CONNECTION MODE, AND USER PROFILE DROPDOWN)
+# TOP BAR NAVBAR (ENTERPRISE APP HEADER)
 # ==============================================================================
 nav_choice = st.session_state.get("current_page", "Restore Operations")
 
 if "Restore Operations" in nav_choice:
     page_title = "Restore Operations"
+    page_icon = "🚀"
     page_desc = "Zero-downtime database restoration pipeline & live query verification"
 elif "Restore History" in nav_choice:
     page_title = "Restore History"
+    page_icon = "📜"
     page_desc = "Audit trail of executed restorations, console logs, and target details"
 else:
     page_title = "System Configuration"
+    page_icon = "⚙️"
     page_desc = "SSH connectivity parameters, database engine credentials, and AD settings"
 
-c_head_title, c_head_conn, c_head_user = st.columns([4.0, 3.6, 2.4], vertical_alignment="center")
+# TOP BAR ROW: BREADCRUMBS, CONNECTION MODE, USER DROPDOWN
+with st.container():
+    c_tb_left, c_tb_conn, c_tb_user = st.columns([3.8, 3.8, 2.4], vertical_alignment="center")
 
-with c_head_title:
-    st.markdown(f"""
-    <div style="padding: 2px 0;">
-        <div style="font-size: 0.68rem; font-weight: 700; color: #64748b; letter-spacing: 0.8px; text-transform: uppercase;">
-            STUDIO &nbsp;›&nbsp; <span style="color:#60a5fa;">{page_title.upper()}</span>
-        </div>
-        <div style="font-size: 1.35rem; font-weight: 700; color: #f8fafc; letter-spacing: -0.3px; line-height: 1.2; margin-top: 2px;">
-            {page_title}
-        </div>
-        <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-            {page_desc}
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-with c_head_conn:
-    # Connection Mode moved to Header as requested
-    mode_options = ["🌐 Remote SSH", "💻 Direct / Local"]
-    curr_default = mode_options[0] if saved_mode == "ssh" else mode_options[1]
-    selected_mode = st.segmented_control(
-        "Connection Mode",
-        mode_options,
-        default=curr_default,
-        key="header_conn_mode_ctrl",
-        label_visibility="collapsed",
-        required=True
-    )
-    is_ssh_mode = selected_mode.startswith("🌐") if selected_mode else (saved_mode == "ssh")
-
-    # Subtitle with Active Host
-    if is_ssh_mode:
-        active_host_text = f"{ssh_cfg.get('user', 'user')}@{ssh_cfg.get('host', '10.21.0.143')}:{ssh_cfg.get('port', 22)}"
-        target_badge = f'<span style="color: #10b981; font-weight: 600;">● SSH</span> &nbsp;<span style="color: #cbd5e1; font-family: monospace;">{active_host_text}</span>'
-    else:
-        target_badge = '<span style="color: #38bdf8; font-weight: 600;">● SOCKET</span> &nbsp;<span style="color: #cbd5e1;">Localhost Direct</span>'
-
-    st.markdown(f"""
-    <div style="text-align: right; font-size: 0.70rem; color: #94a3b8; margin-top: 3px; padding-right: 2px;">
-        {target_badge}
-    </div>
-    """, unsafe_allow_html=True)
-
-with c_head_user:
-    # Profile & Sign Out Dropdown moved to Header
-    pop_label = f"👤  {display_name}  ▾"
-    with st.popover(pop_label, use_container_width=True):
+    with c_tb_left:
         st.markdown(f"""
-        <div style="display: flex; align-items: center; gap: 12px; padding: 4px 0 10px 0;">
-            <div style="width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, #2563eb, #7c3aed); color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; flex-shrink: 0; box-shadow: 0 4px 12px rgba(37,99,235,0.3);">
-                {user_initials}
+        <div style="display:flex; align-items:center; gap:8px; height:38px;">
+            <div style="width:28px; height:28px; border-radius:6px; background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.3); display:flex; align-items:center; justify-content:center; font-size:0.85rem; flex-shrink:0;">
+                {page_icon}
             </div>
-            <div style="overflow: hidden;">
-                <div style="font-weight: 700; font-size: 0.95rem; color: #f8fafc; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
-                    {display_name}
-                </div>
-                <div style="font-size: 0.76rem; color: #94a3b8; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; margin-top: 1px;">
-                    {user_name_str}{card_id_str}
-                </div>
+            <div style="display:flex; align-items:center; gap:6px; overflow:hidden;">
+                <span style="font-weight:700; font-size:0.68rem; color:#64748b; letter-spacing:0.8px; text-transform:uppercase;">STUDIO</span>
+                <span style="color:#334155; font-size:0.75rem;">/</span>
+                <span style="font-weight:600; font-size:0.86rem; color:#f8fafc; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">{page_title}</span>
             </div>
-        </div>
-        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 12px;">
-            <span style="font-size: 0.70rem; font-weight: 600; color: #38bdf8; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.25); padding: 2px 8px; border-radius: 9999px;">
-                {auth_user.get('real_position', 'AD Staff')}
-            </span>
-            <span style="font-size: 0.70rem; font-weight: 600; color: #10b981; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); padding: 2px 8px; border-radius: 9999px;">
-                Active Directory
+            <span style="display:inline-flex; align-items:center; gap:4px; font-size:0.64rem; font-weight:600; color:#10b981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); padding:1px 6px; border-radius:9999px; margin-left:4px; flex-shrink:0;">
+                <span style="width:5px; height:5px; border-radius:50%; background:#10b981; display:inline-block; box-shadow:0 0 6px #10b981;"></span> LIVE
             </span>
         </div>
         """, unsafe_allow_html=True)
-        st.divider()
-        if st.button("🚪 Sign Out", key="header_dropdown_logout_btn", use_container_width=True, type="primary"):
-            st.session_state["authenticated"] = False
-            st.session_state["auth_user"] = None
-            st.session_state["current_page"] = "Restore Operations"
-            st.rerun()
 
-st.markdown("<div style='height: 1px; background: #1e2638; margin: 10px 0 18px 0;'></div>", unsafe_allow_html=True)
+    with c_tb_conn:
+        mode_options = ["🌐 Remote SSH", "💻 Direct / Local"]
+        curr_default = mode_options[0] if saved_mode == "ssh" else mode_options[1]
+        selected_mode = st.segmented_control(
+            "Connection Mode",
+            mode_options,
+            default=curr_default,
+            key="header_conn_mode_ctrl",
+            label_visibility="collapsed",
+            required=True
+        )
+        is_ssh_mode = selected_mode.startswith("🌐") if selected_mode else (saved_mode == "ssh")
+
+    with c_tb_user:
+        pop_label = f"👤  {display_name}  ▾"
+        with st.popover(pop_label, use_container_width=True):
+            st.markdown(f"""
+            <div style="display: flex; align-items: center; gap: 12px; padding: 4px 0 10px 0;">
+                <div style="width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, #2563eb, #7c3aed); color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; flex-shrink: 0; box-shadow: 0 4px 12px rgba(37,99,235,0.3);">
+                    {user_initials}
+                </div>
+                <div style="overflow: hidden;">
+                    <div style="font-weight: 700; font-size: 0.95rem; color: #f8fafc; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+                        {display_name}
+                    </div>
+                    <div style="font-size: 0.76rem; color: #94a3b8; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; margin-top: 1px;">
+                        {user_name_str}{card_id_str}
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 12px;">
+                <span style="font-size: 0.70rem; font-weight: 600; color: #38bdf8; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.25); padding: 2px 8px; border-radius: 9999px;">
+                    {auth_user.get('real_position', 'AD Staff')}
+                </span>
+                <span style="font-size: 0.70rem; font-weight: 600; color: #10b981; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); padding: 2px 8px; border-radius: 9999px;">
+                    Active Directory
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
+            st.divider()
+            if st.button("🚪 Sign Out", key="header_dropdown_logout_btn", use_container_width=True, type="primary"):
+                st.session_state["authenticated"] = False
+                st.session_state["auth_user"] = None
+                st.session_state["current_page"] = "Restore Operations"
+                st.rerun()
+
+# SUB-HEADER: TARGET STATUS STRIP
+if is_ssh_mode:
+    active_host_text = f"{ssh_cfg.get('user', 'user')}@{ssh_cfg.get('host', '10.21.0.143')}:{ssh_cfg.get('port', 22)}"
+    remote_dir = ssh_cfg.get('remote_backup_dir', '/App2/source_backup')
+    target_badge = f'<span style="color:#10b981; font-weight:600;">● SSH ACTIVE</span> &nbsp;•&nbsp; <span style="color:#e2e8f0; font-family:monospace;">{active_host_text}</span> &nbsp;•&nbsp; <span style="color:#94a3b8;">📁 {remote_dir}</span>'
+else:
+    local_dir = config.get('server_storage', {}).get('backup_dir', r'D:\Narak\Sql file')
+    target_badge = f'<span style="color:#38bdf8; font-weight:600;">● SOCKET ACTIVE</span> &nbsp;•&nbsp; <span style="color:#e2e8f0;">Localhost Direct</span> &nbsp;•&nbsp; <span style="color:#94a3b8;">📁 {local_dir}</span>'
+
+st.markdown(f"""
+<div style="display:flex; justify-content:space-between; align-items:center; background:#0d1117; border:1px solid #1f293d; border-radius:8px; padding:6px 14px; margin-top:2px; margin-bottom:14px; font-size:0.74rem;">
+    <div>{target_badge}</div>
+    <div style="color:#64748b; font-size:0.70rem;">Gateway: <span style="color:#38bdf8; font-weight:600;">Production Enterprise Studio</span></div>
+</div>
+""", unsafe_allow_html=True)
+
+# PAGE BANNER HEADER (TITLE & DESCRIPTION)
+st.markdown(f"""
+<div style="margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid #1e2638;">
+    <div style="font-size:1.45rem; font-weight:700; color:#f8fafc; letter-spacing:-0.3px; line-height:1.2;">
+        {page_title}
+    </div>
+    <div style="font-size:0.78rem; color:#94a3b8; margin-top:4px;">
+        {page_desc}
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # ==============================================================================
 # VIEW 1: ZERO-SCROLL RESTORE OPERATIONS
@@ -1135,16 +1214,17 @@ if "Restore Operations" in nav_choice:
                     drop_existing = st.checkbox("Re-create", value=False, help="Drop database first if it already exists")
                 create_db_flag = True
             else:
-                if is_ssh_mode:
-                    if db_type == "PostgreSQL":
-                        existing_dbs = list_remote_postgresql_databases(ssh_cfg, current_cfg)
+                with st.spinner(f"Fetching {db_type} databases..."):
+                    if is_ssh_mode:
+                        if db_type == "PostgreSQL":
+                            existing_dbs = list_remote_postgresql_databases(ssh_cfg, current_cfg)
+                        else:
+                            existing_dbs = list_remote_mariadb_databases(ssh_cfg, current_cfg)
                     else:
-                        existing_dbs = list_remote_mariadb_databases(ssh_cfg, current_cfg)
-                else:
-                    if db_type == "PostgreSQL":
-                        existing_dbs = list_postgresql_databases(current_cfg)
-                    else:
-                        existing_dbs = list_mariadb_databases(current_cfg)
+                        if db_type == "PostgreSQL":
+                            existing_dbs = list_postgresql_databases(current_cfg)
+                        else:
+                            existing_dbs = list_mariadb_databases(current_cfg)
 
                 c_sel, c_drop = st.columns([2.6, 1.4])
                 with c_sel:
@@ -1224,11 +1304,20 @@ if "Restore Operations" in nav_choice:
         if start_btn:
             start_time = time.time()
             all_logs = []
+            progress_slot = st.empty()
+            progress_slot.progress(10, text=f"🚀 Initializing restoration pipeline for '{target_db}'...")
 
             def stream_log(line: str):
                 all_logs.append(line)
                 recent = "\n".join(all_logs)
                 log_box.code(recent, language="bash")
+                line_lower = line.lower()
+                if "transfer" in line_lower or "upload" in line_lower or "sftp" in line_lower:
+                    progress_slot.progress(35, text="📤 Transferring database dump to target server...")
+                elif "restor" in line_lower or "execut" in line_lower or "import" in line_lower or "psql" in line_lower:
+                    progress_slot.progress(70, text="⚙️ Streaming and applying SQL into database engine...")
+                elif "success" in line_lower or "finish" in line_lower or "complete" in line_lower:
+                    progress_slot.progress(95, text="✅ Validating database tables & indexes...")
 
             spinner_label = f"Restoring {db_type} database '{target_db}' on {ssh_cfg.get('host')} via SSH..." if is_ssh_mode else f"Restoring {db_type} database '{target_db}'..."
             with st.spinner(spinner_label):
@@ -1253,6 +1342,11 @@ if "Restore Operations" in nav_choice:
                         drop_existing=drop_existing,
                         log_fn=stream_log
                     )
+
+            if success:
+                progress_slot.progress(100, text="🎉 Restoration completed successfully!")
+            else:
+                progress_slot.progress(100, text="⚠️ Restoration failed. See execution logs below.")
 
             elapsed = time.time() - start_time
             status_str = "SUCCESS" if success else "FAILED"
@@ -1494,7 +1588,8 @@ elif "Configuration" in nav_choice:
             "password": ssh_pass_in,
             "key_path": ssh_key_in
         }
-        ok, msg = test_ssh_connection(test_temp)
+        with st.spinner("Connecting to remote SSH server & testing SFTP..."):
+            ok, msg = test_ssh_connection(test_temp)
         if ok:
             st.success(msg)
         else:
@@ -1511,6 +1606,13 @@ elif "Configuration" in nav_choice:
         pg_user = st.text_input("Username", value=pg_cfg.get("user", "app_dev"), key="cfg_pg_user")
         pg_pass = st.text_input("Password", value=pg_cfg.get("password", ""), type="password", key="cfg_pg_pass")
         pg_maint = st.text_input("Maintenance DB", value=pg_cfg.get("maintenance_db", "postgres"), key="cfg_pg_maint")
+        if st.button("🔌 Test PostgreSQL Connection", key="cfg_test_pg_btn", use_container_width=True):
+            with st.spinner("Pinging PostgreSQL host..."):
+                t_ok, t_msg = test_postgresql_connection({"host": pg_host, "port": pg_port, "user": pg_user, "password": pg_pass, "maintenance_db": pg_maint})
+            if t_ok:
+                st.success(t_msg)
+            else:
+                st.error(t_msg)
 
     with cfg_col2:
         st.markdown("**MariaDB Settings**")
@@ -1519,6 +1621,13 @@ elif "Configuration" in nav_choice:
         maria_port = st.number_input("Port", min_value=1, max_value=65535, value=int(maria_cfg.get("port", 3307)), key="cfg_maria_port")
         maria_user = st.text_input("Username", value=maria_cfg.get("user", "app_dev"), key="cfg_maria_user")
         maria_pass = st.text_input("Password", value=maria_cfg.get("password", ""), type="password", key="cfg_maria_pass")
+        if st.button("🔌 Test MariaDB Connection", key="cfg_test_maria_btn", use_container_width=True):
+            with st.spinner("Pinging MariaDB host..."):
+                t_ok, t_msg = test_mariadb_connection({"host": maria_host, "port": maria_port, "user": maria_user, "password": maria_pass})
+            if t_ok:
+                st.success(t_msg)
+            else:
+                st.error(t_msg)
 
     st.divider()
 
@@ -1526,31 +1635,32 @@ elif "Configuration" in nav_choice:
     ad_data = config.get("ad", {})
     ad_c1, ad_c2, ad_c3 = st.columns([2.5, 2.5, 3])
     with ad_c1:
-        ad_base_url_in = st.text_input("AD Base URL", value=ad_data.get("base_url", "http://172.168.0.118:8086/api/v1"), key="cfg_ad_base")
+        ad_base_url_in = st.text_input("AD Base URL", value=ad_data.get("base_url", "https://ad.mjqeducation.edu.kh/api/v1"), key="cfg_ad_base")
     with ad_c2:
         ad_app_name_in = st.text_input("AD App Name", value=ad_data.get("app_name", "https://epurchase.mjqeducation.edu.kh"), key="cfg_ad_app")
     with ad_c3:
         ad_api_key_in = st.text_input("AD API Key", value=ad_data.get("api_key", ""), type="password", key="cfg_ad_key")
 
     if st.button("🔌 Test AD Service Reachability", use_container_width=True):
-        import requests
-        try:
-            r = requests.post(
-                f"{ad_base_url_in.strip().rstrip('/')}/auth/loginUsername",
-                headers={
-                    "Content-Type": "application/json",
-                    "X-API-KEY": ad_api_key_in.strip(),
-                    "x-app-name": ad_app_name_in.strip()
-                },
-                json={"username": "ping", "password": "ping"},
-                timeout=5
-            )
-            if r.status_code in [200, 400, 401, 404]:
-                st.success(f"✅ Active Directory service reachable! (HTTP {r.status_code})")
-            else:
-                st.warning(f"⚠️ AD Service responded with HTTP {r.status_code}: {r.text}")
-        except Exception as e:
-            st.error(f"❌ Failed to reach AD service: {str(e)}")
+        with st.spinner(f"Testing reachability to Active Directory at {ad_base_url_in}..."):
+            import requests
+            try:
+                r = requests.post(
+                    f"{ad_base_url_in.strip().rstrip('/')}/auth/loginUsername",
+                    headers={
+                        "Content-Type": "application/json",
+                        "X-API-KEY": ad_api_key_in.strip(),
+                        "x-app-name": ad_app_name_in.strip()
+                    },
+                    json={"username": "ping", "password": "ping"},
+                    timeout=6
+                )
+                if r.status_code in [200, 400, 401, 404]:
+                    st.success(f"✅ Active Directory service reachable! (HTTP {r.status_code})")
+                else:
+                    st.warning(f"⚠️ AD Service responded with HTTP {r.status_code}: {r.text}")
+            except Exception as e:
+                st.error(f"❌ Failed to reach AD service: {str(e)}")
 
     st.divider()
 
@@ -1591,7 +1701,9 @@ elif "Configuration" in nav_choice:
                 "app_name": ad_app_name_in.strip()
             }
         }
-        save_config(new_config)
+        with st.spinner("Persisting configuration settings..."):
+            save_config(new_config)
+            time.sleep(0.3)
         st.toast("Configuration saved successfully!", icon="💾")
         st.success("Configuration saved!")
 
