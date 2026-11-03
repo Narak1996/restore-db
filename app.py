@@ -44,6 +44,11 @@ from verify_restore import (
     execute_custom_query,
 )
 from auth_manager import authenticate_ad
+from validation_manager import (
+    get_available_connection_options,
+    execute_validation_task,
+    save_table_screenshot,
+)
 
 # Declare custom zero-reload login component
 LOGIN_COMP_PATH = os.path.join(os.path.dirname(__file__), "login_component")
@@ -100,6 +105,9 @@ def on_proof_dialog_dismissed():
 
 def on_val_con_dialog_dismissed():
     st.session_state["show_val_con_dialog"] = False
+
+def on_val_task_dialog_dismissed():
+    st.session_state["show_val_task_dialog"] = False
 
 def open_proof_modal(p_type: str, p_cfg: dict, p_name: str, file_path: str = "", file_size_mb: float = 0.0):
     st.session_state["proof_dialog_info"] = {
@@ -569,6 +577,64 @@ def validation_connection_dialog(target_item: dict, is_editing: bool, edit_idx: 
     with col_cancel:
         if st.button("Cancel", key="dlg_v_cancel", use_container_width=True):
             st.session_state["show_val_con_dialog"] = False
+            st.rerun()
+
+
+# ==============================================================================
+# MODAL DIALOG: RESTORE VALIDATION TASK
+# ==============================================================================
+@st.dialog("➕ Add Validation Task", width="medium", on_dismiss=on_val_task_dialog_dismissed)
+def validation_task_dialog(task_item: dict, is_editing: bool, edit_idx: int = None):
+    dialog_heading = f"✏️ Edit Validation Task #{edit_idx + 1}" if is_editing else "➕ Add Validation Task"
+    st.markdown(f"#### {dialog_heading}")
+    st.caption("Specify database target and verification SQL command to execute.")
+
+    conn_options = get_available_connection_options(config)
+    curr_conn = task_item.get("connection_name", "Pgsql 172.168.0.130")
+    if curr_conn not in conn_options:
+        conn_options = [curr_conn] + conn_options
+
+    selected_conn = st.selectbox("Connection Name / Target", conn_options, index=conn_options.index(curr_conn) if curr_conn in conn_options else 0, key="dlg_task_conn")
+    t_db = st.text_input("Database Name (DB)", value=task_item.get("db", "assets"), placeholder="e.g. assets", key="dlg_task_db")
+
+    default_cmd = "select id,event ,auditable_type,url,created_at from audits order by created_at desc limit 10;"
+    t_cmd = st.text_area(
+        "SQL Command",
+        value=task_item.get("command", default_cmd),
+        height=95,
+        placeholder="e.g. select id, event, created_at from audits limit 10;",
+        key="dlg_task_cmd"
+    )
+
+    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+    c_save, c_cancel = st.columns([1.5, 1])
+    with c_save:
+        btn_label = "💾 Save Changes" if is_editing else "➕ Add Task to List"
+        if st.button(btn_label, key="dlg_task_save_btn", type="primary", use_container_width=True):
+            if not t_db.strip():
+                st.error("Please enter a database name.")
+            elif not t_cmd.strip():
+                st.error("Please enter an SQL command.")
+            else:
+                new_task = {
+                    "id": task_item.get("id") or f"val_task_{int(time.time())}",
+                    "connection_name": selected_conn.strip(),
+                    "db": t_db.strip(),
+                    "command": t_cmd.strip()
+                }
+                curr_tasks = list(config.get("validation_tasks", []))
+                if is_editing and edit_idx is not None and 0 <= edit_idx < len(curr_tasks):
+                    curr_tasks[edit_idx] = new_task
+                else:
+                    curr_tasks.append(new_task)
+                config["validation_tasks"] = curr_tasks
+                save_config(config)
+                st.session_state["show_val_task_dialog"] = False
+                st.toast("Validation task saved!", icon="🛡️")
+                st.rerun()
+    with c_cancel:
+        if st.button("Cancel", key="dlg_task_cancel_btn", use_container_width=True):
+            st.session_state["show_val_task_dialog"] = False
             st.rerun()
 
 
@@ -1182,7 +1248,13 @@ with st.sidebar:
         st.session_state["current_page"] = "Restore History"
         st.rerun()
 
-    # 3. Configuration Menu with Dropdown / Submenu
+    # 3. Restore Validation
+    val_active = (st.session_state.get("current_page") == "Restore Validation")
+    if st.button("🛡️  Restore Validation", key="sidebar_nav_val_page", type="primary" if val_active else "secondary", use_container_width=True):
+        st.session_state["current_page"] = "Restore Validation"
+        st.rerun()
+
+    # 4. Configuration Menu with Dropdown / Submenu
     cfg_active = ("Configuration" in st.session_state.get("current_page", ""))
     if "cfg_expanded" not in st.session_state:
         st.session_state["cfg_expanded"] = True
@@ -1261,6 +1333,10 @@ elif "Restore History" in nav_choice:
     page_title = "Restore History"
     page_icon = "📜"
     page_desc = "Audit trail of executed restorations, console logs, and target details"
+elif "Restore Validation" in nav_choice:
+    page_title = "Restore Validation"
+    page_icon = "🛡️"
+    page_desc = "Execute query assertions across database instances and capture validation proof snapshots"
 else:
     curr_cat_name = st.session_state.get("config_category", "Remote SSH")
     page_title = f"Configuration › {curr_cat_name}"
@@ -1735,6 +1811,156 @@ elif "Restore History" in nav_choice:
 
 
 # ==============================================================================
+# VIEW: RESTORE VALIDATION (MULTI-TASK QUERY ASSERTION & PROOF SNAPSHOTS)
+# ==============================================================================
+elif "Restore Validation" in nav_choice:
+    # 1. Header Row with Add Row Dialog trigger
+    val_v_c1, val_v_c2 = st.columns([3.8, 1.2], vertical_alignment="center")
+    with val_v_c1:
+        st.markdown("#### 🛡️ Restore Validation")
+        st.caption("Execute verification queries across targets, inspect live record samples, and generate audit proof screenshots.")
+    with val_v_c2:
+        if st.button("➕ Add Row", key="btn_open_val_task_dlg", type="primary", use_container_width=True):
+            st.session_state["val_task_target"] = {}
+            st.session_state["val_task_is_editing"] = False
+            st.session_state["val_task_idx"] = None
+            st.session_state["show_val_task_dialog"] = True
+            st.rerun()
+
+    st.markdown("<div style='height:4px;'></div>", unsafe_allow_html=True)
+
+    val_tasks = config.get("validation_tasks", [])
+
+    # 2. Table of Validation Tasks (matching user sketch: #, Connection name, DB, Command, Action)
+    if not val_tasks:
+        st.markdown("""
+        <div style="background:#111622; border:1px dashed #28354f; border-radius:8px; padding:32px; text-align:center; color:#94a3b8; margin: 12px 0 20px 0;">
+            <div style="font-size:1.8rem; margin-bottom:8px;">🛡️</div>
+            <div style="font-weight:600; color:#f1f5f9; font-size:1rem; margin-bottom:4px;">No Validation Tasks Configured</div>
+            <div style="font-size:0.83rem;">Click <b>Add Row</b> above to define your first database validation query.</div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        # Table Header
+        th_1, th_2, th_3, th_4, th_5 = st.columns([0.5, 2.5, 1.8, 5.0, 1.8], vertical_alignment="center")
+        with th_1:
+            st.markdown("<span style='font-size:0.75rem; font-weight:700; color:#94a3b8; text-transform:uppercase;'>#</span>", unsafe_allow_html=True)
+        with th_2:
+            st.markdown("<span style='font-size:0.75rem; font-weight:700; color:#94a3b8; text-transform:uppercase;'>Connection name</span>", unsafe_allow_html=True)
+        with th_3:
+            st.markdown("<span style='font-size:0.75rem; font-weight:700; color:#94a3b8; text-transform:uppercase;'>DB</span>", unsafe_allow_html=True)
+        with th_4:
+            st.markdown("<span style='font-size:0.75rem; font-weight:700; color:#94a3b8; text-transform:uppercase;'>Command</span>", unsafe_allow_html=True)
+        with th_5:
+            st.markdown("<span style='font-size:0.75rem; font-weight:700; color:#94a3b8; text-transform:uppercase;'>Action</span>", unsafe_allow_html=True)
+
+        st.markdown("<div style='height:1px; background:#1f293d; margin:6px 0 8px 0;'></div>", unsafe_allow_html=True)
+
+        for t_idx, task in enumerate(val_tasks):
+            tr_1, tr_2, tr_3, tr_4, tr_5 = st.columns([0.5, 2.5, 1.8, 5.0, 1.8], vertical_alignment="center")
+            with tr_1:
+                st.markdown(f"<span style='font-weight:600; color:#64748b;'>{t_idx + 1}</span>", unsafe_allow_html=True)
+            with tr_2:
+                st.markdown(f"<span style='font-weight:600; color:#f8fafc;'>{task.get('connection_name', 'Default')}</span>", unsafe_allow_html=True)
+            with tr_3:
+                st.markdown(f"<code style='color:#7ee787;'>{task.get('db', '')}</code>", unsafe_allow_html=True)
+            with tr_4:
+                st.markdown(f"<code style='color:#cbd5e1; font-size:0.78rem; word-break:break-all;'>{task.get('command', '')}</code>", unsafe_allow_html=True)
+            with tr_5:
+                act_edit, act_del = st.columns([1, 1])
+                with act_edit:
+                    if st.button("✏️", key=f"btn_edit_task_{t_idx}", help="Edit Task"):
+                        st.session_state["val_task_target"] = dict(task)
+                        st.session_state["val_task_is_editing"] = True
+                        st.session_state["val_task_idx"] = t_idx
+                        st.session_state["show_val_task_dialog"] = True
+                        st.rerun()
+                with act_del:
+                    if st.button("🗑️", key=f"btn_del_task_{t_idx}", help="Remove Task"):
+                        curr_tasks = list(config.get("validation_tasks", []))
+                        if 0 <= t_idx < len(curr_tasks):
+                            curr_tasks.pop(t_idx)
+                            config["validation_tasks"] = curr_tasks
+                            save_config(config)
+                            st.toast("Task removed!", icon="🗑️")
+                            st.rerun()
+
+            st.markdown("<div style='height:1px; background:rgba(255,255,255,0.04); margin:4px 0;'></div>", unsafe_allow_html=True)
+
+        # 3. Execute All Button (prominent row)
+        st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
+        col_exec_space, col_exec_btn = st.columns([3.8, 2.2])
+        with col_exec_btn:
+            if st.button("⚡ Execute all", key="btn_val_exec_all", type="primary", use_container_width=True):
+                with st.spinner(f"Executing {len(val_tasks)} validation command(s)..."):
+                    results = []
+                    for t in val_tasks:
+                        res = execute_validation_task(t, config)
+                        results.append(res)
+                    st.session_state["val_exec_results"] = results
+                    st.rerun()
+
+    # 4. Results Section (matching user sketch: Execution 1 Result | IP | Database | Table | Result Table | Screenshot)
+    exec_results = st.session_state.get("val_exec_results", [])
+    if exec_results:
+        st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
+        st.markdown("### 📊 Validation Results")
+
+        for r_idx, res in enumerate(exec_results):
+            with st.container():
+                # Result Header Strip matching user sketch
+                status_color = "#3fb950" if res["ok"] else "#f85149"
+                status_text = f"✅ SUCCESS ({res['latency']:.3f}s)" if res["ok"] else "❌ FAILED"
+
+                st.markdown(f"""
+                <div style="background:#131824; border:1px solid #1f293d; border-radius:8px 8px 0 0; padding:10px 16px; margin-top:14px; display:flex; justify-content:space-between; align-items:center;">
+                    <div style="display:flex; align-items:center; gap:14px; font-size:0.83rem;">
+                        <span style="font-weight:700; color:#f8fafc; font-size:0.92rem;">Execution {r_idx + 1} Result</span>
+                        <span style="color:#64748b;">|</span>
+                        <span style="color:#94a3b8;">IP: <b style="color:#38bdf8;">{res['ip']}</b></span>
+                        <span style="color:#64748b;">|</span>
+                        <span style="color:#94a3b8;">Database: <b style="color:#7ee787;">{res['db']}</b></span>
+                        <span style="color:#64748b;">|</span>
+                        <span style="color:#94a3b8;">Table: <b style="color:#cbd5e1;">{res['table']}</b></span>
+                    </div>
+                    <div>
+                        <span style="color:{status_color}; font-weight:700; font-size:0.8rem;">{status_text}</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                if res["ok"] and res["df"] is not None:
+                    # Dataframe display
+                    st.dataframe(res["df"], use_container_width=True, hide_index=True)
+
+                    # Screenshot Button matching user sketch
+                    c_ss_left, c_ss_btn = st.columns([3.8, 2.2], vertical_alignment="center")
+                    with c_ss_left:
+                        st.caption("📸 Save snapshot to: `desktop/validate-restore/{db}_{table}_{date:time}.png`")
+                    with c_ss_btn:
+                        if st.button(f"📸 Screen short", key=f"btn_ss_{r_idx}", use_container_width=True):
+                            with st.spinner("Generating high-resolution table screenshot..."):
+                                out_path, fname = save_table_screenshot(
+                                    res["df"],
+                                    res["ip"],
+                                    res["db"],
+                                    res["table"],
+                                    r_idx + 1
+                                )
+                                st.session_state[f"last_saved_ss_{r_idx}"] = out_path
+                                st.toast(f"Saved {fname} to Desktop!", icon="📸")
+                                st.rerun()
+
+                    saved_path = st.session_state.get(f"last_saved_ss_{r_idx}")
+                    if saved_path and os.path.exists(saved_path):
+                        st.success(f"✅ Screenshot saved: `{saved_path}`")
+                else:
+                    st.error(f"Query execution failed: {res.get('error')}")
+
+                st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+
+
+# ==============================================================================
 # TAB 3: CATEGORIZED CONFIGURATION (SEPARATE FUNCTIONS UNDER DROPDOWN)
 # ==============================================================================
 elif "Configuration" in nav_choice:
@@ -1793,7 +2019,8 @@ elif "Configuration" in nav_choice:
                 "api_key": st.session_state.get("cfg_ad_key", ad_data.get("api_key", "")).strip(),
                 "app_name": st.session_state.get("cfg_ad_app", ad_data.get("app_name", "https://epurchase.mjqeducation.edu.kh")).strip()
             },
-            "validation_connections": config.get("validation_connections", [])
+            "validation_connections": config.get("validation_connections", []),
+            "validation_tasks": config.get("validation_tasks", [])
         }
         with st.spinner("Persisting configuration settings..."):
             save_config(new_config)
@@ -2151,4 +2378,11 @@ if st.session_state.get("show_val_con_dialog"):
         st.session_state.get("val_dialog_target", {}),
         st.session_state.get("val_dialog_is_editing", False),
         st.session_state.get("val_dialog_idx")
+    )
+
+if st.session_state.get("show_val_task_dialog"):
+    validation_task_dialog(
+        st.session_state.get("val_task_target", {}),
+        st.session_state.get("val_task_is_editing", False),
+        st.session_state.get("val_task_idx")
     )

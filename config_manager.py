@@ -55,6 +55,14 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "password": "",
             "key_path": ""
         }
+    ],
+    "validation_tasks": [
+        {
+            "id": "val_task_1",
+            "connection_name": "Pgsql 172.168.0.130",
+            "db": "assets",
+            "command": "select id,event ,auditable_type,url,created_at from audits order by created_at desc limit 10;"
+        }
     ]
 }
 
@@ -89,6 +97,15 @@ def load_config() -> Dict[str, Any]:
                         "auth_type": data.get("ssh", {}).get("auth_type", "password"),
                         "password": data.get("ssh", {}).get("password", ""),
                         "key_path": data.get("ssh", {}).get("key_path", "")
+                    }
+                ]
+            if "validation_tasks" not in data or not isinstance(data.get("validation_tasks"), list):
+                data["validation_tasks"] = [
+                    {
+                        "id": "val_task_1",
+                        "connection_name": "Pgsql 172.168.0.130",
+                        "db": "assets",
+                        "command": "select id,event ,auditable_type,url,created_at from audits order by created_at desc limit 10;"
                     }
                 ]
             return data
