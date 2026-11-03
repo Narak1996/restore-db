@@ -389,6 +389,28 @@ def _restore_worker(req_data: Dict[str, Any], cfg: Dict[str, Any]):
                 active_restore["status"] = "error"
                 active_restore["error"] = err or "Restoration process failed."
                 active_restore["logs"].append(f"ERROR: {err}")
+
+        # Persist restore execution to SQLite audit history
+        try:
+            f_size_mb = 0.0
+            if req_data.get("file_size"):
+                f_size_mb = float(req_data["file_size"]) / (1024 * 1024)
+            history_manager.add_history(
+                db_type=f"{req_data.get('engine', 'PostgreSQL')} ({'SSH: ' + cfg.get('ssh', {}).get('host', '') if req_data.get('mode') == 'ssh' else 'Local'})",
+                db_name=req_data.get("target_db", ""),
+                file_name=os.path.basename(req_data.get("dump_path", "")),
+                file_size_mb=round(f_size_mb, 2),
+                created_db=req_data.get("create_first", True),
+                status="SUCCESS" if success else "ERROR",
+                duration_sec=elapsed,
+                logs="\n".join(active_restore.get("logs", [])),
+                source_path=req_data.get("dump_path", ""),
+                destination=req_data.get("target_db", ""),
+                executed_by=req_data.get("executed_by") or "admin",
+                user_name=req_data.get("executed_by") or "admin"
+            )
+        except Exception as hex:
+            print(f"Error persisting restore audit history: {hex}")
     except Exception as e:
         with restore_lock:
             active_restore["is_running"] = False
@@ -428,20 +450,92 @@ def cancel_restore():
 # RESTORE HISTORY ENDPOINTS
 # ------------------------------------------------------------------------------
 
+def _enrich_history_record(r: Dict[str, Any]) -> Dict[str, Any]:
+    target_db = r.get("db_name") or r.get("target_db") or ""
+    dump_file = r.get("file_name") or r.get("dump_file") or ""
+    raw_engine = r.get("db_type") or r.get("engine_type") or ""
+    engine = "MariaDB" if "mariadb" in raw_engine.lower() or "mysql" in raw_engine.lower() else "PostgreSQL"
+    mode = "SSH" if "ssh" in raw_engine.lower() or "ssh" in (r.get("mode") or "").lower() else "LOCAL"
+    dur = r.get("duration_sec") if r.get("duration_sec") is not None else r.get("duration_seconds", 0)
+    logs = r.get("logs") or r.get("log_output") or ""
+    
+    r["target_db"] = target_db
+    r["db_name"] = target_db
+    r["dump_file"] = dump_file
+    r["file_name"] = dump_file
+    r["engine_type"] = engine
+    r["db_type"] = raw_engine or engine
+    r["mode"] = mode
+    r["duration_sec"] = dur
+    r["duration_seconds"] = dur
+    r["logs"] = logs
+    r["log_output"] = logs
+    return r
+
 @app.api_route("/api/history", methods=["GET", "POST"])
 def get_history(limit: int = 100, offset: int = 0, body: Optional[Dict[str, Any]] = None):
     """Returns restore history audit records from SQLite database formatted for AsynDataTable or simple fetchers."""
-    records = history_manager.get_history(limit=limit)
+    records = history_manager.get_history(limit=500)
+    enriched = [_enrich_history_record(dict(r)) for r in records]
+
+    # Handle search filters from POST body or query params
+    search_val = ""
+    target_filter = ""
+    dump_filter = ""
+    if body and isinstance(body, dict):
+        search_val = str(body.get("searchValue", "")).strip().lower()
+        search_prop = body.get("searchProp", [])
+        if isinstance(search_prop, list):
+            for sp in search_prop:
+                if isinstance(sp, dict):
+                    p_name = sp.get("propertyname", "")
+                    p_val = str(sp.get("value", "")).strip().lower()
+                    if p_name in ("target_db", "db_name"):
+                        target_filter = p_val
+                    elif p_name in ("dump_file", "file_name"):
+                        dump_filter = p_val
+        elif isinstance(search_prop, dict):
+            target_filter = str(search_prop.get("target_db") or search_prop.get("db_name", "")).strip().lower()
+            dump_filter = str(search_prop.get("dump_file") or search_prop.get("file_name", "")).strip().lower()
+        if "target_db" in body and not target_filter:
+            target_filter = str(body.get("target_db", "")).strip().lower()
+        if "dump_file" in body and not dump_filter:
+            dump_filter = str(body.get("dump_file", "")).strip().lower()
+
+    filtered = enriched
+    if search_val:
+        filtered = [
+            r for r in filtered
+            if search_val in r["target_db"].lower()
+            or search_val in r["dump_file"].lower()
+            or search_val in r["engine_type"].lower()
+            or search_val in str(r.get("timestamp", "")).lower()
+            or search_val in str(r.get("status", "")).lower()
+        ]
+    if target_filter:
+        filtered = [r for r in filtered if target_filter in r["target_db"].lower()]
+    if dump_filter:
+        filtered = [r for r in filtered if dump_filter in r["dump_file"].lower()]
+
+    total = len(filtered)
+    # Apply pagination
+    if body and isinstance(body, dict):
+        start = int(body.get("start", offset))
+        length = int(body.get("length", limit))
+        paged = filtered[start:start + length]
+    else:
+        paged = filtered[offset:offset + limit]
+
     return {
         "success": True,
         "data": {
-            "records": records,
-            "totalRecord": len(records),
-            "recordsFiltered": len(records)
+            "records": paged,
+            "totalRecord": total,
+            "recordsFiltered": total
         },
-        "records": records,
-        "totalRecord": len(records),
-        "recordsFiltered": len(records)
+        "records": paged,
+        "totalRecord": total,
+        "recordsFiltered": total
     }
 
 @app.get("/api/history/{record_id}")
@@ -450,7 +544,7 @@ def get_history_detail(record_id: int):
     rec = history_manager.get_restore_record(record_id)
     if not rec:
         raise HTTPException(status_code=404, detail="Record not found.")
-    return {"success": True, "data": rec}
+    return {"success": True, "data": _enrich_history_record(rec)}
 
 # ------------------------------------------------------------------------------
 # RESTORE VALIDATION ENDPOINTS

@@ -118,6 +118,23 @@ def get_history(limit: int = 200) -> List[Dict[str, Any]]:
 
 get_restore_history = get_history
 
+def get_restore_record(record_id: int) -> Optional[Dict[str, Any]]:
+    init_db()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM restore_history WHERE id = ?", (record_id,))
+        row = cursor.fetchone()
+        if not row:
+            return None
+        d = dict(row)
+        if not d.get("server_user"):
+            d["server_user"] = "user" if "SSH" in d.get("db_type", "") else os.getenv("USERNAME", "local")
+        if not d.get("db_user"):
+            d["db_user"] = "app_dev"
+        if not d.get("executed_by"):
+            d["executed_by"] = d.get("user_name") or "-"
+        return d
+
 def clear_history() -> None:
     init_db()
     with get_db_connection() as conn:
